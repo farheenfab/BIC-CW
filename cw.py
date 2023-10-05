@@ -113,10 +113,10 @@ class Network:
     def __init__(self): #initialise the empty list of layers 
         self.layers = []
     
-    def append(layer): #to append a layer to the network 
+    def append(self, layer): #to append a layer to the network 
         self.layers.append(layer)
 
-    def forward (data_in): 
+    def forward(self, data_in): 
         out = data_in
         for layer in self.layers:
             out = layer.forward(out)
