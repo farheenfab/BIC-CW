@@ -55,44 +55,64 @@ class ReLU(Activation):
 # abstract Loss class
 # provides evaluate and derivative methods class Loss:
 class Loss:
-    def evaluate(x): 
-        pass 
+    def __init__(self, x, y, t):
+        self.x = x
+        self.y = y
+        self.t = t
 
-    def derivate(x): 
-        pass
+    def evaluate(self, x, y, t): 
+        if self.x == "MSE":
+            return MSE.evaluate(y,t)
+        elif self.x == "Binary Cross Entropy":
+            return Binary_cross_entropy.evaluate(y,t)
+        elif self.x == "Hinge":
+            return Hinge.evaluate(y,t)
 
-# MSE Loss – subclass of Loss
-class Mse (Loss):
+    def derivate(self, x, y, t): 
+        if self.x == "MSE":
+            return MSE.derivative(y,t)
+        elif self.x == "Binary Cross Entropy":
+            return Binary_cross_entropy.derivative(y,t)
+        elif self.x == "Hinge":
+            return Hinge.derivative(y,t)
+        
+# MSE (Mean Squared Error) Loss – subclass of Loss
+class MSE(Loss):
     def evaluate(y, t):
-        return 2*(t-y)**2
+        return np.mean((t-y)**2) #2*(t-y)**2
     
     def derivative(y, t): 
-        return t-y
+        return 2 * (y - t) / len(t)
 
 #Binary cross entropy Loss – subclass of Loss 
-class Binary_cross_entropy (Loss):
+class Binary_cross_entropy(Loss):
     def evaluate(y,t):
         y_pred = np.clip(y, 1e-7, 1 - 1e-7)
-        term0 = (1-t) * np.log(1-y + 1e-7) 
-        term1 = t * np.log(y + 1e-7) 
+        term0 = (1-t) * np.log(1- y_pred + 1e-7) 
+        term1 = t * np.log(y_pred + 1e-7) 
         return -(term0 + term1)
     
     def derivative(y,t):
         return t/y + (1-t) /(1-y)
     
 #Hinge Loss – subclass of Loss 
-class Hinge (Loss):
+class Hinge(Loss):
     def evaluate(y,t):
         return max(0, 1-t*y)
 
     def derivative(y,t): 
-        return ...
+        if 1 - t * y > 0:
+            return -t
+        else:
+            return 0
 
 #Layer class providing forward method 
 class Layer:
     def __init__(self, nodes, activation):
         #declare attributes: nb_nodes, X_in, W, B, activation
         self.nb_nodes = nodes
+        self.X_in = 0
+        self.activation = activation
         # generating random weights for each neuron in the layer
         self.W = np.random.randn(nodes, 1) #generates an array of specified shape, where each element is drawn from a standard normal distribution (also known as a Gaussian distribution) with a mean of 0 and a standard deviation of 1.
         # generating random biases for each neuron in the layer
@@ -102,13 +122,24 @@ class Layer:
     def forward(self, fin):
         self.X_in = fin
         active = Activation(self.activation)
-        out = active.evaluate(self.W * fin + self.B)
+        out = active.evaluate(np.dot(self.W, self.X_in) + self.B)
         return out
     
-    def update(g, lamda):
-        pass
+    def update(self, g, lamda):
+        self.W = self.W - lamda * g[0]
+        self.B = self.B - lamda * g[1]
+        """
+        Update weights and biases using gradient information and learning rate.
 
-#Network class encapsulates the list of layers and provides forward and backpropagate methods 
+        Parameters:
+        g (numpy.ndarray): Gradient of the loss with respect to the layer's output.
+        learning_rate (float): Learning rate for the update.
+
+        Returns:
+        None
+        """
+        
+#Network class encapsulates the list of layers and provides forward method
 class Network:
     def __init__(self): #initialise the empty list of layers 
         self.layers = []
@@ -183,12 +214,17 @@ def gd(ann, data, classes, epochs, rate, loss, batch_size):
 
 #read and prepare your data x, y 
 ...
+layers = 3
+nodes = [3,5,2]
+functions = ["Logistic", "Hyperbolic tangent", "ReLU"]
+
 
 #read ANN params from user: layers, nodes, functions 
 ann = ANNBuilder.build(layers, nodes, functions)
 
 # read hyper-parameters: epochs, rate, batch_size, loss
 # run experiment
-loss, accuracy = mini_batch(ann, data, classes, epochs, rate, loss, batch_size) 
+
+#loss, accuracy = mini_batch(ann, data, classes, epochs, rate, loss, batch_size) 
 ...
 # plot, display results
