@@ -79,7 +79,7 @@ class Loss:
 # MSE (Mean Squared Error) Loss – subclass of Loss
 class MSE(Loss):
     def evaluate(y, t):
-        return np.mean((t-y)**2) #2*(t-y)**2
+        return (1/2)*((t-y)**2) #1/2*(t-y)**2
     
     def derivative(y, t): 
         return 2 * (y - t) / len(t)
