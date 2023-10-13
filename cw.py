@@ -82,7 +82,7 @@ class MSE(Loss):
         return (1/2)*((t-y)**2) #1/2*(t-y)**2
     
     def derivative(y, t): 
-        return 2 * (y - t) / len(t)
+        return t-y
 
 #Binary cross entropy Loss – subclass of Loss 
 class Binary_cross_entropy(Loss):
