@@ -212,18 +212,25 @@ def gd(ann, data, classes, epochs, rate, loss, batch_size):
 """
 
 #read and prepare your data x, y 
-...
 layers = 3
 nodes = [3,5,2]
 functions = ["Logistic", "Hyperbolic tangent", "ReLU"]
-
 
 #read ANN params from user: layers, nodes, functions 
 ann = ANNBuilder.build(layers, nodes, functions)
 
 # read hyper-parameters: epochs, rate, batch_size, loss
-# run experiment
+epochs = 6
+learning_rate = 0.5
+batch_size = 30
+loss_func = Binary_cross_entropy()
 
-#loss, accuracy = mini_batch(ann, data, classes, epochs, rate, loss, batch_size) 
-...
+# run experiment
+#loss, accuracy = mini_batch(ann, data, classes, epochs, learning_rate, loss_func, batch_size) 
+
 # plot, display results
+# plt.plot(range(epochs), loss, label='Loss')
+# plt.xlabel('Epochs')
+# plt.ylabel('Loss')
+# plt.legend()
+# plt.show()
