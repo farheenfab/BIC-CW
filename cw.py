@@ -60,21 +60,21 @@ class Loss:
         self.y = y
         self.t = t
 
-    def evaluate(self, x, y, t): 
+    def evaluate(self): 
         if self.x == "MSE":
-            return MSE.evaluate(y,t)
+            return MSE.evaluate(self.y,self.t)
         elif self.x == "Binary Cross Entropy":
-            return Binary_cross_entropy.evaluate(y,t)
+            return Binary_cross_entropy.evaluate(self.y,self.t)
         elif self.x == "Hinge":
-            return Hinge.evaluate(y,t)
+            return Hinge.evaluate(self.y,self.t)
 
-    def derivate(self, x, y, t): 
+    def derivate(self): 
         if self.x == "MSE":
-            return MSE.derivative(y,t)
+            return MSE.derivative(self.y,self.t)
         elif self.x == "Binary Cross Entropy":
-            return Binary_cross_entropy.derivative(y,t)
+            return Binary_cross_entropy.derivative(self.y,self.t)
         elif self.x == "Hinge":
-            return Hinge.derivative(y,t)
+            return Hinge.derivative(self.y,self.t)
         
 # MSE (Mean Squared Error) Loss – subclass of Loss
 class MSE(Loss):
@@ -108,15 +108,16 @@ class Hinge(Loss):
 
 #Layer class providing forward method 
 class Layer:
-    def __init__(self, nodes, activation):
+    def __init__(self, nb_inputs, nb_nodes, activation):
         #declare attributes: nb_nodes, X_in, W, B, activation
-        self.nb_nodes = nodes
-        self.X_in = 0
+        self.nb_nodes = nb_nodes
+        size = (nb_nodes, nb_inputs)
         self.activation = activation
         # generating random weights for each neuron in the layer
-        self.W = np.random.randn(nodes, 1) #generates an array of specified shape, where each element is drawn from a standard normal distribution (also known as a Gaussian distribution) with a mean of 0 and a standard deviation of 1.
+        self.W = np.random.uniform(-1, 1, size)
+        #generates an array of specified shape, where each element is drawn from a standard normal distribution (also known as a Gaussian distribution) with a mean of 0 and a standard deviation of 1.
         # generating random biases for each neuron in the layer
-        self.B = np.random.randn(nodes, 1)
+        self.B = np.random.uniform(-1, 1, size)
         self.activation = activation
     
     def forward(self, fin):
@@ -147,6 +148,9 @@ class Network:
     def append(self, layer): #to append a layer to the network 
         self.layers.append(layer)
 
+    # Forward pass through layers of the neural network, assumes input data has already been passed into the network and 
+    # continues forward pass from last layer's output.
+    # Used internally within network to pass data through the layers
     def forward(self, data_in): 
         out = data_in
         for layer in self.layers:
@@ -158,14 +162,9 @@ class ANNBuilder:
     def build(nb_layers, list_nb_nodes, list_functions): 
         ann = Network()
         for i in range(nb_layers):
-            layer = Layer(list_nb_nodes[i], list_functions[i]) 
+            layer = Layer(list_nb_nodes[i], list_nb_nodes[i+1], list_functions[i]) 
             ann.append(layer)
-
-    def forward(x):
-        pass
-
-    def update(g, lamda):
-        pass
+        return ann
 
 """
 #Base gradient descent that iterates on a batch of data and then backpropagate the error 
