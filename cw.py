@@ -262,10 +262,10 @@ functions = ["Logistic", "Logistic", "Hyperbolic tangent", "ReLU"]
 ann = ANNBuilder.build(layers, nodes, functions)
 PSO()
 # read hyper-parameters: epochs, rate, batch_size, loss
-epochs = 6
-learning_rate = 0.5
-batch_size = 30
-#loss_func = Binary_cross_entropy()
+# epochs = 6
+# learning_rate = 0.5
+# batch_size = 30
+# loss_func = Loss.evaluate("MSE", )
 
 # run experiment
 #loss, accuracy = mini_batch(ann, data, classes, epochs, learning_rate, loss_func, batch_size) 
