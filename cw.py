@@ -1,5 +1,8 @@
 import numpy as np
 import math
+from numpy import array
+from random import random
+from math import sin, sqrt
 
 # abstract activation class
 # provide evaluate and derivative methods
@@ -166,64 +169,103 @@ class ANNBuilder:
             ann.append(layer)
         return ann
 
-"""
-#Base gradient descent that iterates on a batch of data and then backpropagate the error 
-def base_gd(ann, data, classes, rate, loss):
-    for x in data: #considering data as a list 
-        y = ann. forward(x)
-        t = getTrue(classes, x) #simply retrieve the class corresponding to sample x 
-        L += loss.evaluate(y, t) #cumulate the loss
-        dL += loss.dervative(y, t) #cumulate the error
-        accuracy += 1 if y==t else 0 #count the good classifications
-    L /= len(data) # take the average loss
-    dL /= len(data) # take the average error
-    accuracy /= len(data) #calculate the percent accuracy
-    ann.backpropagate(dL, rate) #backpropagate the error and update the weights 
-    #adapt the rate here if needed
-    return L, accuracy
+iter_max = 10000
+pop_size = 100
+dimensions = 2
+c1 = 2
+c2 = 2
+err_crit = 0.00001
 
-#gd varients
-def mini_batch(ann, data, classes, epochs, rate, loss, batch_size): 
-    loss, accu = gd(ann, data, classes, epochs, rate, loss, batch_size) 
-    return loss, accu
 
-def dgd(ann, data, classes, epochs, rate, loss): # batch size = N
-    loss, accu = gd(ann, data, classes, epochs, rate, loss, data.size)
-    return loss, accu
+#PSO
+def PSO():
+    class Particle:
+        # pass
+        def __init__(self, dimensions):
+            self.params = np.array([random() for _ in range(dimensions)])
+            self.fitness = 0.0
+            self.best = self.params
+            self.v = np.zeros(dimensions)
 
-def sgd(ann, data, classes, epochs, rate, loss): # batch size = 1 
-    loss, accu = gd(ann, data, classes, epochs, rate, loss, 1)
-    return loss, accu
+    particles = [Particle(dimensions) for _ in range(pop_size)]
 
-def gd(ann, data, classes, epochs, rate, loss, batch_size): 
-    L=0
-    accuracy=0
-    #partition the dataset into batches
-    batches = createBatches(data, classes, batch_size) 
-    #iterate on the epochs
-    for epoch in range(epochs):
-        #batch assumed to have data and classes attributes 
-        for batch in batches:
-            lo, accu = base_gd(ann, batch.data, batch.classes, rate, loss) 
-        #store loss L and accuracy in lists for later plotting
-        L +=lo
-        accuracy += accu 
-    return
-"""
+    for p in particles:
+        p.informants = np.random.choice(particles, size=10, replace=False)
+
+    def f6(para):
+        '''Schaffer's F6 function'''
+        num = (sin(sqrt((para[0] * para[0]) + (para[1] * para[1])))**2) - 0.5
+        denom = (1.0 + 0.001 * ((para[0] * para[0]) + (para[1] * para[1])))**2
+        f6 =  0.5 - (num / denom)
+        errorf6 = 1 - f6
+        return f6, errorf6
+
+    gbest = particles[0]
+    err = float('inf')
+    i = 0
+
+    max_velocity = 0.1 
+
+    while i < iter_max:
+        for p in particles:
+            fitness, err = f6(p.params)
+            if fitness > p.fitness:
+                p.fitness = fitness
+                p.best = p.params
+
+            if fitness > gbest.fitness:
+                gbest = p
+
+        # Calculate particle's new velocity
+            v = p.v + c1 * random() * (p.best - p.params) + c2 * random() * (gbest.params - p.params)
+
+            # Limit velocity to avoid excessive movement
+            v = np.clip(v, -max_velocity, max_velocity)
+            
+            p.v = v
+
+            # Update particle's position
+            p.params = p.params + p.v
+
+        i += 1
+        if err < err_crit:
+            break
+
+        # Progress bar (print '.' every 10% of iterations)
+        if i % (iter_max // 10) == 0:
+            print('.')
+
+    print ('\nParticle Swarm Optimisation\n')
+    print ('PARAMETERS\n','-'*9)
+    print ('Population size : ', pop_size)
+    print ('Dimensions      : ', dimensions)
+    print ('Error Criterion : ', err_crit)
+    print ('c1              : ', c1)
+    print ('c2              : ', c2)
+    print ('function        :  f6')
+
+    print ('RESULTS\n', '-'*7)
+    print ('gbest fitness   : ', gbest.fitness)
+    print ('gbest params    : ', gbest.params)
+    print ('iterations      : ', i+1)
+    ## Uncomment to print particles
+    # for p in particles:
+    #     print('params: %s, fitness: %s, best: %s' % (p.params, p.fitness, p.best))
+
 
 #read and prepare your data x, y 
 layers = 3
-nodes = [3,5,2]
-functions = ["Logistic", "Hyperbolic tangent", "ReLU"]
+nodes = [3,3,5,2]
+functions = ["Logistic", "Logistic", "Hyperbolic tangent", "ReLU"]
 
 #read ANN params from user: layers, nodes, functions 
 ann = ANNBuilder.build(layers, nodes, functions)
-
+PSO()
 # read hyper-parameters: epochs, rate, batch_size, loss
 epochs = 6
 learning_rate = 0.5
 batch_size = 30
-loss_func = Binary_cross_entropy()
+#loss_func = Binary_cross_entropy()
 
 # run experiment
 #loss, accuracy = mini_batch(ann, data, classes, epochs, learning_rate, loss_func, batch_size) 
