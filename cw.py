@@ -28,32 +28,55 @@ class Activation:
             return ReLU.derivative(x)
 
 # sigmoid activation – sub class of activation
-class Sigmoid (Activation):
-    def evaluate(x):
-        return 1 / (1 + math.exp(-x))
+# class Sigmoid (Activation):
+#     def evaluate(x):
+#         return 1 / (1 + math.exp(-x))
     
-    # derivative of f = sigma * (1- sigma)
-    def derivative(x):
+#     # derivative of f = sigma * (1- sigma)
+#     def derivative(x):
+#         f = 1 / (1 + math.exp(-x))
+#         return f * (1 - f)
+
+# # tanh activation – sub class of activation
+# class tanh(Activation):
+#     def evaluate(x):
+#         return math.tanh(x)
+
+#     # derivative of tanh(x) = sech^2 (x) = 1- tanh^2 (x)
+#     def derivative(x):
+#         f = math.tanh(x)
+#         return 1 - f**2
+
+# # ReLU activation – sub class of activation
+# class ReLU(Activation):
+#     def evaluate(x):
+#         return np.maximum(0, x)
+
+#     # derivative of max(0, x) = 0 if x < 0, 1 if x > 0 because slope is uniform which is the derivative of the ReLU Graph(1).
+#     def derivative(x):
+#         return np.where(x > 0, 1, 0)
+
+class Sigmoid(Activation):
+    def evaluate(self, x):
+        return 1 / (1 + math.exp(-x))
+
+    def derivative(self, x):
         f = 1 / (1 + math.exp(-x))
         return f * (1 - f)
 
-# tanh activation – sub class of activation
 class tanh(Activation):
-    def evaluate(x):
+    def evaluate(self, x):
         return math.tanh(x)
 
-    # derivative of tanh(x) = sech^2 (x) = 1- tanh^2 (x)
-    def derivative(x):
+    def derivative(self, x):
         f = math.tanh(x)
         return 1 - f**2
 
-# ReLU activation – sub class of activation
 class ReLU(Activation):
-    def evaluate(x):
+    def evaluate(self, x):
         return np.maximum(0, x)
 
-    # derivative of max(0, x) = 0 if x < 0, 1 if x > 0 because slope is uniform which is the derivative of the ReLU Graph(1).
-    def derivative(x):
+    def derivative(self, x):
         return np.where(x > 0, 1, 0)
 
 # abstract Loss class
@@ -184,7 +207,6 @@ class Particle:
         self.best_fitness = 0.0
         self.best_ann = self.ann
         self.v = 0.0
-
 #PSO
 def PSO(X, y, layers, nodes, functions, iter_max=10000, pop_size=100, dimensions=2, c1=2, c2=2, err_crit=0.00001):
     # class Particle:
