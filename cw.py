@@ -3,6 +3,7 @@ import math
 from numpy import array
 from random import random
 from math import sin, sqrt
+import pandas as pd
 
 # abstract activation class
 # provide evaluate and derivative methods
@@ -126,7 +127,7 @@ class Layer:
     def forward(self, fin):
         self.X_in = fin
         active = Activation(self.activation)
-        out = active.evaluate(np.dot(self.W, self.X_in) + self.B)
+        out = active.evaluate(np.dot(self.W.T, self.X_in) + self.B)
         return out
     
     def update(self, g, lamda):
@@ -176,21 +177,30 @@ c1 = 2
 c2 = 2
 err_crit = 0.00001
 
+class Particle:
+    def __init__(self, nb_layers, list_nb_nodes, list_functions):
+        self.ann = ANNBuilder.build(nb_layers, list_nb_nodes, list_functions)
+        self.fitness = 0.0
+        self.best_fitness = 0.0
+        self.best_ann = self.ann
+        self.v = 0.0
 
 #PSO
-def PSO():
-    class Particle:
-        # pass
-        def __init__(self, dimensions):
-            self.params = np.array([random() for _ in range(dimensions)])
-            self.fitness = 0.0
-            self.best = self.params
-            self.v = np.zeros(dimensions)
+def PSO(X, y, layers, nodes, functions, iter_max=10000, pop_size=100, dimensions=2, c1=2, c2=2, err_crit=0.00001):
+    # class Particle:
+    #     # pass
+    #     def __init__(self, dimensions):
+    #         self.params = np.array([random() for _ in range(dimensions)])
+    #         self.fitness = 0.0
+    #         self.best = self.params
+    #         self.v = np.zeros(dimensions)
 
-    particles = [Particle(dimensions) for _ in range(pop_size)]
-
-    for p in particles:
-        p.informants = np.random.choice(particles, size=10, replace=False)
+    # class Particle:
+    #     def __init__(self, nb_layers, list_nb_nodes, list_functions):
+    #         self.ann = ANNBuilder.build(nb_layers, list_nb_nodes, list_functions)
+    #         self.fitness = 0.0
+    #         self.best = self.ann
+    #         self.v = 0.0
 
     def f6(para):
         '''Schaffer's F6 function'''
@@ -199,6 +209,24 @@ def PSO():
         f6 =  0.5 - (num / denom)
         errorf6 = 1 - f6
         return f6, errorf6
+    
+    def evaluate_ann(ann, X, y):
+        # Assuming X is the feature matrix and y is the target vector (0 or 1)
+        y_pred = []
+        for sample in X:
+            # Assuming the ANN output is a single value between 0 and 1
+            output = ann.forward(sample)
+            y_pred.append(1 if output >= 0.5 else 0)
+
+        accuracy = np.sum(y_pred == y) / len(y)
+        fitness = accuracy  # You can use other metrics as needed
+        errorf6 = 1 - fitness
+        return fitness, errorf6
+
+    particles = [Particle(layers, nodes, functions) for _ in range(pop_size)]
+
+    for p in particles:
+        p.informants = np.random.choice(particles, size=10, replace=False)
 
     gbest = particles[0]
     err = float('inf')
@@ -208,16 +236,17 @@ def PSO():
 
     while i < iter_max:
         for p in particles:
-            fitness, err = f6(p.params)
+            fitness, _ = evaluate_ann(p.ann, X, y)
             if fitness > p.fitness:
                 p.fitness = fitness
-                p.best = p.params
+                p.best_ann = p.ann
+                p.best_fitness = fitness
 
             if fitness > gbest.fitness:
                 gbest = p
 
         # Calculate particle's new velocity
-            v = p.v + c1 * random() * (p.best - p.params) + c2 * random() * (gbest.params - p.params)
+            v = p.v + c1 * random() * (p.best_ann - p.ann) + c2 * random() * (gbest.best_ann - p.ann)
 
             # Limit velocity to avoid excessive movement
             v = np.clip(v, -max_velocity, max_velocity)
@@ -225,10 +254,14 @@ def PSO():
             p.v = v
 
             # Update particle's position
-            p.params = p.params + p.v
+            p.ann = p.ann + p.v
 
-        i += 1
-        if err < err_crit:
+        # i += 1
+        # if err < err_crit:
+        #     break
+
+        # Early stopping criterion
+        if abs(gbest.fitness - p.fitness) < err_crit:
             break
 
         # Progress bar (print '.' every 10% of iterations)
@@ -246,12 +279,20 @@ def PSO():
 
     print ('RESULTS\n', '-'*7)
     print ('gbest fitness   : ', gbest.fitness)
-    print ('gbest params    : ', gbest.params)
+    print ('gbest ann    : ', gbest.ann)
     print ('iterations      : ', i+1)
+    return gbest
     ## Uncomment to print particles
     # for p in particles:
     #     print('params: %s, fitness: %s, best: %s' % (p.params, p.fitness, p.best))
 
+# Load the dataset
+url = "data_banknote_authentication.txt"
+data = pd.read_csv(url, header=None)
+
+# Extract features (X) and labels (y)
+X = data.iloc[:, :-1].values
+y = data.iloc[:, -1].values
 
 #read and prepare your data x, y 
 layers = 3
@@ -259,8 +300,10 @@ nodes = [3,3,5,2]
 functions = ["Logistic", "Logistic", "Hyperbolic tangent", "ReLU"]
 
 #read ANN params from user: layers, nodes, functions 
-ann = ANNBuilder.build(layers, nodes, functions)
-PSO()
+# ann = ANNBuilder.build(layers, nodes, functions)
+
+best = PSO(X, y, layers, nodes, functions)
+print(best.ann)
 # read hyper-parameters: epochs, rate, batch_size, loss
 # epochs = 6
 # learning_rate = 0.5
