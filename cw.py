@@ -105,41 +105,12 @@ class Hinge(Loss):
             return -t
         else:
             return 0
-l = 0
-#Layer class providing forward method 
-# class Layer:
-#     def __init__(self, nb_inputs, nb_nodes, activation):
-#         #declare attributes: nb_nodes, X_in, W, B, activation
-#         global l
-#         l = l+1
-#         print("l = ", l)
-#         self.nb_nodes = nb_nodes
-#         size = (nb_nodes, nb_inputs)
-#         self.activation = activation
-#         print(nb_inputs)
-#         print(nb_nodes)
-#         # generating random weights for each neuron in the layer
-#         self.W = np.random.uniform(-1, 1, nb_inputs)
-#         #generates an array of specified shape, where each element is drawn from a standard normal distribution (also known as a Gaussian distribution) with a mean of 0 and a standard deviation of 1.
-#         # generating random biases for each neuron in the layer
-#         self.B = np.random.uniform(-1, 1, nb_inputs)
-    
-#     def forward(self, fin):
-#         self.X_in = fin
-#         active = Activation(self.activation)
-#         out = active.evaluate(np.dot(self.W, self.X_in) + self.B)
-#         return out
-    
+
 class Layer:
     def __init__(self, nb_inputs, nb_nodes, activation):
-        global l
-        l = l + 1
-        print("l = ", l)
         self.nb_nodes = nb_nodes
         size = (nb_nodes, nb_inputs)
         self.activation = activation
-        print(nb_inputs)
-        print(nb_nodes)
         # generating random weights for each neuron in the layer
         self.W = np.random.uniform(-1, 1, size)
         # generating random biases for each neuron in the layer
@@ -218,13 +189,6 @@ class ANNBuilder:
             ann.append(layer)
         return ann
 
-# iter_max = 10000
-# pop_size = 100
-# dimensions = 2
-# c1 = 2
-# c2 = 2
-# err_crit = 0.00001
-
 class Particle:
     def __init__(self, layers, nodes, functions):
         self.ann = ANNBuilder.build(layers, nodes, functions)
@@ -295,17 +259,19 @@ def PSO(X, y, layers, nodes, functions, epochs, pop_size=100, c1=2, c2=2, err_cr
             break
         
         print("Epoch = ", epoch+1)
-        # Progress bar
-        # if i % (iter_max // 10) == 0:
-        #     print('.', end='')
 
     print('\nParticle Swarm Optimisation finished')
     print('Best fitness achieved:', gbest_fitness)
     return gbest_params  # Return the best parameters found
 
 # Load the dataset
-url = "data_banknote_authentication.txt"
-data = pd.read_csv(url, header=None)
+# from sklearn.datasets import load_iris
+# iris = load_iris()
+# X = iris.data
+# y = iris.target
+
+f = "data_banknote_authentication.txt"
+data = pd.read_csv(f, header=None)
 
 # Extract features (X) and labels (y)
 X = data.iloc[:, :-1].values
