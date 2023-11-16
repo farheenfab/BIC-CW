@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
+import warnings
 
-# abstract activation class
-# provide evaluate and derivative methods
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow encountered in exp")
+
 class Activation:
     def __init__(self, activation):
         self.activation = activation
@@ -199,7 +201,7 @@ class Particle:
         self.informants = []  # List of other particles that are informants
         self.best_informant_params = self.best_ann_params
 
-def PSO(X, y, layers, nodes, functions, epochs, pop_size=100, c1=2, c2=2, err_crit=0.00001, w=0.5, num_informants=3):
+def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, c1=2, c2=2, err_crit=0.00001, w=0.5, num_informants=3):
     
     def evaluate_ann(ann, X, y):
         # Assuming X is the feature matrix and y is the target vector (0 or 1)
@@ -223,6 +225,8 @@ def PSO(X, y, layers, nodes, functions, epochs, pop_size=100, c1=2, c2=2, err_cr
     # Initialize global best as the first particle's position
     gbest_fitness = -float('inf')
     gbest_params = particles[0].best_ann_params
+
+    progress_bar = tqdm(total=epochs, desc='Epochs', position=0, leave=True)
     
     for epoch in range(epochs):
         for p in particles:
@@ -258,7 +262,9 @@ def PSO(X, y, layers, nodes, functions, epochs, pop_size=100, c1=2, c2=2, err_cr
             print("Stopping early due to meeting fitness criterion")
             break
         
-        print("Epoch = ", epoch+1)
+        progress_bar.update(1)
+        # print("Epoch = ", epoch+1)
+    progress_bar.close()
 
     print('\nParticle Swarm Optimisation finished')
     print('Best fitness achieved:', gbest_fitness)
@@ -278,132 +284,145 @@ X = data.iloc[:, :-1].values
 y = data.iloc[:, -1].values
 
 # Set hyper-parameters
-layers = 3
-nodes = [3, 3, 5, 1]
-functions = ["Logistic", "Hyperbolic tangent", "ReLU", "Logistic"]
-epochs = 50
+# layers = 3
+# nodes = [3, 3, 5, 1]
+# functions = ["Logistic", "Hyperbolic tangent", "ReLU", "Logistic"]
+# epochs = 50
 
 # Run PSO with specified epochs and learning rate
-best_params = PSO(X, y, layers, nodes, functions, epochs)
-print(best_params)
-# class Particle:
-#     def __init__(self, nb_layers, list_nb_nodes, list_functions):
-#         self.ann = ANNBuilder.build(nb_layers, list_nb_nodes, list_functions)
-#         self.fitness = 0.0
-#         self.best_fitness = 0.0
-#         self.best_ann = self.ann
-#         self.v = 0.0
+# best_params = PSO(X, y, layers, nodes, functions, epochs)
+# print(best_params)
 
-# #PSO
-# def PSO(X, y, layers, nodes, functions, iter_max=10000, pop_size=100, dimensions=2, c1=2, c2=2, err_crit=0.00001, w = 0.5):
-#     # class Particle:
-#     #     # pass
-#     #     def __init__(self, dimensions):
-#     #         self.params = np.array([random() for _ in range(dimensions)])
-#     #         self.fitness = 0.0
-#     #         self.best = self.params
-#     #         self.v = np.zeros(dimensions)
+def set_up():
+    # Getting number of hidden layers
+    n_layers = int(input("Enter number of hidden layers: "))
 
-#     # class Particle:
-#     #     def __init__(self, nb_layers, list_nb_nodes, list_functions):
-#     #         self.ann = ANNBuilder.build(nb_layers, list_nb_nodes, list_functions)
-#     #         self.fitness = 0.0
-#     #         self.best = self.ann
-#     #         self.v = 0.0
+    # Getting number of nodes per layer
+    n_nodes = []
+    for i in range(n_layers):
+        node = int(input(f"Enter number of nodes for layer {i+1}: "))    
+        n_nodes.append(node)
+    output_node = int(input("Enter number of nodes for output layer: "))
+    n_nodes.append(output_node)
 
-#     def f6(para):
-#         '''Schaffer's F6 function'''
-#         num = (sin(sqrt((para[0] * para[0]) + (para[1] * para[1])))**2) - 0.5
-#         denom = (1.0 + 0.001 * ((para[0] * para[0]) + (para[1] * para[1])))**2
-#         f6 =  0.5 - (num / denom)
-#         errorf6 = 1 - f6
-#         return f6, errorf6
-    
-#     def evaluate_ann(ann, X, y):
-#         # Assuming X is the feature matrix and y is the target vector (0 or 1)
-#         y_pred = []
-#         for sample in X:
-#             # Assuming the ANN output is a single value between 0 and 1
-#             output = ann.forward(sample)
-#             y_pred.append(1 if output[-1] >= 0.5 else 0)
+    # Getting Activation Functions
+    functions = []
+    print(f"Select one of the below listed activation functions for the layers: ")
+    print("1 - Logistic")
+    print("2 - Hyperbolic tangent")
+    print("3 - ReLU")
+    for i in range(len(n_nodes)):
+        if i != len(n_nodes)-1:
+            active_func = int(input(f"Enter option for Layer {i+1}: "))
+            if active_func == 1:
+                functions.append("Logistic")
+            elif active_func == 2:
+                functions.append("Hyperbolic tangent")
+            elif active_func == 3:
+                functions.append("ReLU")
+            else:
+                while active_func not in (1, 2, 3):
+                    print("Wrong option")
+                    active_func = int(input(f"Enter option for Layer {i+1}: "))
+                    if active_func == 1:
+                        functions.append("Logistic")
+                    elif active_func == 2:
+                        functions.append("Hyperbolic tangent")
+                    elif active_func == 3:
+                        functions.append("ReLU")
+        else:
+            active_func = int(input(f"Enter option for Output Layer {i+1}: "))
+            if active_func == 1:
+                functions.append("Logistic")
+            elif active_func == 2:
+                functions.append("Hyperbolic tangent")
+            elif active_func == 3:
+                functions.append("ReLU")
+            else:
+                while active_func not in (1, 2, 3):
+                    print("Wrong option")
+                    active_func = int(input(f"Enter option for Layer {i+1}: "))
+                    if active_func == 1:
+                        functions.append("Logistic")
+                    elif active_func == 2:
+                        functions.append("Hyperbolic tangent")
+                    elif active_func == 3:
+                        functions.append("ReLU")
 
-#         y_pred = np.array(y_pred)
-#         accuracy = np.mean(y_pred == y)
-#         fitness = accuracy  # You can use other metrics as needed
-#         errorf6 = 1 - fitness
-#         return fitness, errorf6
+    epochs_input = input("Enter number of epochs (default = 50): ")
+    epochs = int(epochs_input) if epochs_input else 50
 
-#     particles = [Particle(layers, nodes, functions) for _ in range(pop_size)]
+    pop_in = input("Enter population size (default = 100): ")
+    pop_size = int(pop_in) if pop_in else 100
 
-#     for p in particles:
-#         p.informants = np.random.choice(particles, size=10, replace=False)
+    c1_in = input("Enter c1 value (default = 2): ")
+    c1 = int(c1_in) if c1_in else 2
 
-#     gbest = particles[0]
-#     err = float('inf')
-#     i = 0
+    c2_in = input("Enter c2 value (default = 2): ")
+    c2 = int(c2_in) if c2_in else 2
 
-#     max_velocity = 0.1 
+    err_crit_in = input("Enter error criterion (default = 0.00001): ")
+    err_crit = float(err_crit_in) if err_crit_in else 0.00001
 
-#     while i < iter_max:
-#         for p in particles:
-#             fitness, _ = evaluate_ann(p.ann, X, y)
-#             if fitness > p.fitness:
-#                 p.fitness = fitness
-#                 p.best_ann = p.ann
-#                 p.best_fitness = fitness
+    w_in = input("Enter w value (default = 0.5): ")
+    w = float(w) if w_in else 0.5
 
-#             if fitness > gbest.fitness:
-#                 gbest = p
-            
-#             r1 = np.random.rand(dimensions)
-#             r2 = np.random.rand(dimensions)
+    num_informants_in = input("Enter the number of informants (default = 3): ")
+    num_informants = int(num_informants_in) if num_informants_in else 3
 
-#             current_position = p.ann.get_parameters()
-#             p_best_position = p.best_ann.get_parameters()
-#             g_best_position = gbest.best_ann.get_parameters()
-#             # Calculate particle's new velocity
-#             v = w * v + c1 * r1 * (p_best_position - current_position) + c2 * r2 * (g_best_position - current_position)
-#             # v = p.v + c1 * random() * (p.best_ann - p.ann) + c2 * random() * (gbest.best_ann - p.ann)
-#             new_position = current_position + v
-#             p.ann.set_parameters(new_position)
-#             # Limit velocity to avoid excessive movement
-#             v = np.clip(v, -max_velocity, max_velocity)
-            
-#             p.v = v
+    return(n_layers, n_nodes, functions, epochs, pop_size, c1, c2, err_crit, w, num_informants)
+ 
+layers, nodes, functions, epochs, pop_size, c1, c2, err_crit, w, num_informants = set_up()
+best_params = PSO(X, y, layers, nodes, functions, epochs, pop_size, c1, c2, err_crit, w, num_informants)
+# weights = []
+# bias = []
+# for i in range(0, len(best_params), 2):
+#     weights.append(best_params[i])
 
-#             # Update particle's position
-#             p.ann = p.ann + p.v
+# for i in range(1, len(best_params), 2):
+#     bias.append(best_params[i])
 
-#         # i += 1
-#         # if err < err_crit:
-#         #     break
+# print("The best parameters: ", best_params)
+# print("The best parameters have been split into weights and biases below:")
+# print("Weights: \n", weights)
+# print("Bias: \n", bias)
 
-#         # Early stopping criterion
-#         if abs(gbest.fitness - p.fitness) < err_crit:
-#             break
+# def format_best_params(best_params, nodes):
+#     formatted_params = {}
+#     pointer = 0
 
-#         # Progress bar (print '.' every 10% of iterations)
-#         if i % (iter_max // 10) == 0:
-#             print('.')
+#     # Iterate through layers
+#     for i in range(len(nodes) - 1):
+#         # Number of nodes in current and next layer
+#         current_layer_nodes = nodes[i]
+#         next_layer_nodes = nodes[i+1]
 
-#     print ('\nParticle Swarm Optimisation\n')
-#     print ('PARAMETERS\n','-'*9)
-#     print ('Population size : ', pop_size)
-#     print ('Dimensions      : ', dimensions)
-#     print ('Error Criterion : ', err_crit)
-#     print ('c1              : ', c1)
-#     print ('c2              : ', c2)
-#     print ('function        :  f6')
+#         # Calculate the size of weights and biases for current layer
+#         weight_size = current_layer_nodes * next_layer_nodes
+#         bias_size = next_layer_nodes
 
-#     print ('RESULTS\n', '-'*7)
-#     print ('gbest fitness   : ', gbest.fitness)
-#     print ('gbest ann    : ', gbest.ann)
-#     print ('iterations      : ', i+1)
-#     return gbest
-#     ## Uncomment to print particles
-#     # for p in particles:
-#     #     print('params: %s, fitness: %s, best: %s' % (p.params, p.fitness, p.best))
+#         # Extract weights
+#         weights = best_params[pointer:pointer + weight_size].reshape(next_layer_nodes, current_layer_nodes)
+#         pointer += weight_size
 
+#         # Extract biases
+#         biases = best_params[pointer:pointer + bias_size]
+#         pointer += bias_size
+
+#         # Store in a dictionary
+#         formatted_params[f'Layer {i+1}'] = {'Weights': weights, 'Biases': biases}
+
+#     return formatted_params
+
+# # Example usage
+# formatted_best_params = format_best_params(best_params, nodes)
+# for layer, params in formatted_best_params.items():
+#     print(f"{layer} Parameters:")
+#     print("Weights:\n", params['Weights'])
+#     print("Biases:\n", params['Biases'], "\n")
+
+
+# print(best_params)
 
 # run experiment
 #loss, accuracy = mini_batch(ann, data, classes, epochs, learning_rate, loss_func, batch_size) 
