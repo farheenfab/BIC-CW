@@ -1,0 +1,12 @@
+1) Change Blue color - Farheen DONE
+2) Fix error criterion alpha float - Prasitha DONE
+3) Next button to be shifted to the center - Prasitha DONE
+4) store the values typed in a list (no of nodes) - Farheen DONE
+5) fix the layout of the activation options & store in list - Farheen Halfway DONE (Layout left)
+6) options should not show the negative signs - prasitha DONE
+7) add a next button to show new screen - prasitha DONE
+8) new screen should have epochs progress bar in the center - Farheen Halfway DONE (Write Epochs and show the progress thru the number of epochs completed)
+9) if we have time - add ann diagram and loss function graph - Farheen
+10) print and show the best fitness accuracy weights & biases - Prasitha
+
+After selecting the file the next shifts towards the right

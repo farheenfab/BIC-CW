@@ -214,7 +214,7 @@ class Particle:
             fitness = 1 - loss  # Assuming accuracy is inversely proportional to the loss
             return fitness
 
-def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, beta=2, gamma=2, delta=2, err_crit=0.00001, num_informants=3, loss_func="MSE"):
+def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, beta=2, gamma=2, delta=2, err_crit=0.00001, num_informants=3, loss_func="MSE", progress_callback=None, progress_bar=None):
     
     def evaluate_ann(ann, X, y):
         # Assuming X is the feature matrix and y is the target vector (0 or 1)
@@ -238,7 +238,7 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, be
     gbest_fitness = -float('inf')
     gbest_params = particles[0].best_ann_params
 
-    progress_bar = tqdm(total=epochs, desc='Epochs', position=0, leave=True)
+    # progress_bar = tqdm(total=epochs, desc='Epochs', position=0, leave=True)
     
     for epoch in range(epochs):
         for p in particles:
@@ -276,9 +276,12 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, be
             print("Stopping early due to meeting fitness criterion")
             break
         
-        progress_bar.update(1)
+        if progress_callback and progress_bar:
+            progress_callback(progress_bar, (epoch + 1) / epochs)
+
+        # progress_bar.update(1)
         # print("Epoch = ", epoch+1)
-    progress_bar.close()
+    # progress_bar.close()
 
     print('\nParticle Swarm Optimisation finished')
     print('Best fitness achieved:', gbest_fitness)
@@ -291,12 +294,12 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, be
 # X = iris.data
 # y = iris.target
 
-# f = "data_banknote_authentication.txt"
-# data = pd.read_csv(f, header=None)
+f = "data_banknote_authentication.txt"
+data = pd.read_csv(f, header=None)
 
-# # Extract features (X) and labels (y)
-# X = data.iloc[:, :-1].values
-# y = data.iloc[:, -1].values
+# Extract features (X) and labels (y)
+X = data.iloc[:, :-1].values
+y = data.iloc[:, -1].values
 
 # Set hyper-parameters
 # layers = 3
@@ -413,7 +416,7 @@ def set_up():
             elif loss_func_in == 3:
                 loss_func = "Hinge"
 
-    return(n_layers, n_nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
+    return(n_layers+1, n_nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
  
 # layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func = set_up()
 # best_params = PSO(X, y, layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
