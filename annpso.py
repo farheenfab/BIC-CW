@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import warnings
+import sys
 
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow encountered in exp")
 
@@ -59,8 +60,8 @@ class ReLU(Activation):
 class Loss:
     def __init__(self, x, y, t):
         self.x = x
-        self.y = y
-        self.t = t
+        self.y = y # actual y labels
+        self.t = t # predicted y labels
 
     def evaluate(self): 
         if self.x == "MSE":
@@ -119,10 +120,11 @@ class Layer:
         self.B = np.random.uniform(-1, 1, nb_nodes)
 
     def forward(self, fin):
-        self.X_in = fin
+        fin_transposed = fin.T if fin.ndim > 1 else fin
         active = Activation(self.activation)
-        out = active.evaluate(np.dot(self.W, self.X_in) + self.B)
-        return out
+        B_reshaped = self.B.reshape(-1, 1)
+        out = active.evaluate(np.dot(self.W, fin_transposed) + B_reshaped)
+        return out.T
     
     def update(self, g, lamda):
         self.W = self.W - lamda * g[0]
@@ -192,7 +194,7 @@ class ANNBuilder:
         return ann
 
 class Particle:
-    def __init__(self, layers, nodes, functions):
+    def __init__(self, layers, nodes, functions, loss_func):
         self.ann = ANNBuilder.build(layers, nodes, functions)
         self.fitness = -float('inf')  # Initialize with negative infinity
         self.best_fitness = -float('inf')  # Initialize with negative infinity
@@ -200,8 +202,19 @@ class Particle:
         self.v = np.zeros_like(self.best_ann_params)  # Initialize velocity as zeros
         self.informants = []  # List of other particles that are informants
         self.best_informant_params = self.best_ann_params
+        self.loss_function = loss_func
 
-def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, c1=2, c2=2, err_crit=0.00001, w=0.5, num_informants=3):
+    def evaluate_fitness(self, X, y):
+            # Evaluate fitness using the loss class
+            y_pred = self.ann.forward(X)
+            y_pred = y_pred.reshape(-1, 1) if y_pred.ndim > 1 else y_pred
+            l = Loss(self.loss_function, y, y_pred)
+            loss = l.evaluate()
+            loss = np.mean(loss) if isinstance(loss, np.ndarray) else loss
+            fitness = 1 - loss  # Assuming accuracy is inversely proportional to the loss
+            return fitness
+
+def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, beta=2, gamma=2, delta=2, err_crit=0.00001, num_informants=3, loss_func="MSE"):
     
     def evaluate_ann(ann, X, y):
         # Assuming X is the feature matrix and y is the target vector (0 or 1)
@@ -209,15 +222,14 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, c1=2, c2=2, err
         for sample in X:
             # Assuming the ANN output is a single value between 0 and 1
             output = ann.forward(sample)
-            y_pred.append(1 if output[-1] >= 0.5 else 0)
+            prediction = 1 if output.flatten()[-1] >= 0.5 else 0
+            y_pred.append(prediction)
 
         y_pred = np.array(y_pred)
         accuracy = np.mean(y_pred == y)
-        fitness = accuracy  # You can use other metrics as needed
-        errorf6 = 1 - fitness
-        return fitness, errorf6
+        return accuracy
     
-    particles = [Particle(layers, nodes, functions) for _ in range(pop_size)]
+    particles = [Particle(layers, nodes, functions, loss_func) for _ in range(pop_size)]
 
     for p in particles:
         p.informants = np.random.choice([particle for particle in particles if particle != p], size=num_informants, replace=False)
@@ -231,7 +243,8 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, c1=2, c2=2, err
     for epoch in range(epochs):
         for p in particles:
             # Evaluate current fitness
-            fitness = evaluate_ann(p.ann, X, y)[0]
+            accuracy = evaluate_ann(p.ann, X, y)
+            fitness = p.evaluate_fitness(X, y)
             
             # Update personal best if the current fitness is better
             if fitness > p.best_fitness:
@@ -251,7 +264,8 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, c1=2, c2=2, err
             # Update velocity and position
             r1 = np.random.rand(p.v.shape[0])
             r2 = np.random.rand(p.v.shape[0])
-            p.v = w * p.v + c1 * r1 * (p.best_ann_params - p.ann.get_parameters()) + c2 * r2 * (p.best_informant_params - p.ann.get_parameters())
+            r3 = np.random.rand(p.v.shape[0])
+            p.v = alpha_w * p.v + beta * r1 * (p.best_ann_params - p.ann.get_parameters()) + gamma * r2 * (p.best_informant_params - p.ann.get_parameters()) + delta * r3 * (gbest_params - p.ann.get_parameters())
             
             # Update position with new velocity
             new_position = p.ann.get_parameters() + p.v
@@ -268,6 +282,7 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, c1=2, c2=2, err
 
     print('\nParticle Swarm Optimisation finished')
     print('Best fitness achieved:', gbest_fitness)
+    print('Best accuracy achieved:', accuracy)
     return gbest_params  # Return the best parameters found
 
 # Load the dataset
@@ -276,12 +291,12 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, c1=2, c2=2, err
 # X = iris.data
 # y = iris.target
 
-f = "data_banknote_authentication.txt"
-data = pd.read_csv(f, header=None)
+# f = "data_banknote_authentication.txt"
+# data = pd.read_csv(f, header=None)
 
-# Extract features (X) and labels (y)
-X = data.iloc[:, :-1].values
-y = data.iloc[:, -1].values
+# # Extract features (X) and labels (y)
+# X = data.iloc[:, :-1].values
+# y = data.iloc[:, -1].values
 
 # Set hyper-parameters
 # layers = 3
@@ -300,14 +315,14 @@ def set_up():
     # Getting number of nodes per layer
     n_nodes = []
     for i in range(n_layers):
-        node = int(input(f"Enter number of nodes for layer {i+1}: "))    
+        node = int(input(f"Enter number of nodes for Layer {i+1}: "))    
         n_nodes.append(node)
-    output_node = int(input("Enter number of nodes for output layer: "))
+    output_node = int(input("Enter number of nodes for Output Layer: "))
     n_nodes.append(output_node)
 
     # Getting Activation Functions
     functions = []
-    print(f"Select one of the below listed activation functions for the layers: ")
+    print(f"Select one of the below listed activation functions for each of the layers: ")
     print("1 - Logistic")
     print("2 - Hyperbolic tangent")
     print("3 - ReLU")
@@ -355,25 +370,54 @@ def set_up():
     pop_in = input("Enter population size (default = 100): ")
     pop_size = int(pop_in) if pop_in else 100
 
-    c1_in = input("Enter c1 value (default = 2): ")
-    c1 = int(c1_in) if c1_in else 2
+    alpha_w_in = input("Enter alpha value (default = 0.5): ")
+    alpha_w = int(alpha_w_in) if alpha_w_in else 0.5
 
-    c2_in = input("Enter c2 value (default = 2): ")
-    c2 = int(c2_in) if c2_in else 2
+    beta_in = input("Enter beta value (default = 2): ")
+    beta = int(beta_in) if beta_in else 2
+
+    gamma_in = input("Enter gamma value (default = 2): ")
+    gamma = int(gamma_in) if gamma_in else 2
+
+    delta_in = input("Enter delta value (default = 2): ")
+    delta = int(delta_in) if delta_in else 2
 
     err_crit_in = input("Enter error criterion (default = 0.00001): ")
     err_crit = float(err_crit_in) if err_crit_in else 0.00001
 
-    w_in = input("Enter w value (default = 0.5): ")
-    w = float(w) if w_in else 0.5
-
     num_informants_in = input("Enter the number of informants (default = 3): ")
     num_informants = int(num_informants_in) if num_informants_in else 3
 
-    return(n_layers, n_nodes, functions, epochs, pop_size, c1, c2, err_crit, w, num_informants)
+    print(f"Select one of the below listed Loss Functions: ")
+    print("1 - MSE")
+    print("2 - Binary Cross Entropy")
+    print("3 - Hinge")
+    loss_func_in = input(f"Enter option for Loss Function (default = MSE): ")
+    loss_func_in = int(loss_func_in) if loss_func_in else 1
+    loss_func = "MSE"
+    if loss_func_in == 1:
+        loss_func = "MSE"
+    elif loss_func_in == 2:
+        loss_func = "Binary Cross Entropy"
+    elif loss_func_in == 3:
+        loss_func = "Hinge"
+    else:
+        while loss_func_in not in (1, 2, 3):
+            print("Wrong option")
+            loss_func_in = int(input(f"Enter option for Loss Function (default = MSE): "))
+            loss_func = "MSE"
+            if loss_func_in == 1:
+                loss_func = "MSE"
+            elif loss_func_in == 2:
+                loss_func = "Binary Cross Entropy"
+            elif loss_func_in == 3:
+                loss_func = "Hinge"
+
+    return(n_layers, n_nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
  
-layers, nodes, functions, epochs, pop_size, c1, c2, err_crit, w, num_informants = set_up()
-best_params = PSO(X, y, layers, nodes, functions, epochs, pop_size, c1, c2, err_crit, w, num_informants)
+# layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func = set_up()
+# best_params = PSO(X, y, layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
+# print(best_params)
 # weights = []
 # bias = []
 # for i in range(0, len(best_params), 2):
