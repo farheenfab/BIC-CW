@@ -214,7 +214,7 @@ class Particle:
             fitness = 1 - loss  # Assuming accuracy is inversely proportional to the loss
             return fitness
 
-def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, beta=2, gamma=2, delta=2, err_crit=0.00001, num_informants=3, loss_func="MSE", progress_callback=None, progress_bar=None):
+def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, beta=2, gamma=2, delta=2, err_crit=0.00001, num_informants=3, loss_func="MSE", progress_callback=None):
     
     def evaluate_ann(ann, X, y):
         # Assuming X is the feature matrix and y is the target vector (0 or 1)
@@ -239,7 +239,6 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, be
     gbest_params = particles[0].best_ann_params
 
     # progress_bar = tqdm(total=epochs, desc='Epochs', position=0, leave=True)
-    
     for epoch in range(epochs):
         for p in particles:
             # Evaluate current fitness
@@ -259,6 +258,7 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, be
             # Update global best if the current fitness is better
             if fitness > gbest_fitness:
                 gbest_fitness = fitness
+                best_acc = accuracy
                 gbest_params = p.ann.get_parameters()
             
             # Update velocity and position
@@ -270,23 +270,21 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, be
             # Update position with new velocity
             new_position = p.ann.get_parameters() + p.v
             p.ann.set_parameters(new_position)
-            
         # Check for early stopping
         if gbest_fitness >= 1 - err_crit:
             print("Stopping early due to meeting fitness criterion")
             break
         
-        if progress_callback and progress_bar:
-            progress_callback(progress_bar, (epoch + 1) / epochs)
+        if progress_callback is not None:
+            progress_callback(epoch + 1)
 
         # progress_bar.update(1)
         # print("Epoch = ", epoch+1)
     # progress_bar.close()
-
     print('\nParticle Swarm Optimisation finished')
     print('Best fitness achieved:', gbest_fitness)
-    print('Best accuracy achieved:', accuracy)
-    return gbest_params  # Return the best parameters found
+    print('Best accuracy achieved:', best_acc)
+    return gbest_fitness, best_acc, gbest_params # Return the best parameters found
 
 # Load the dataset
 # from sklearn.datasets import load_iris
@@ -419,7 +417,7 @@ def set_up():
     return(n_layers+1, n_nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
  
 # layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func = set_up()
-# best_params = PSO(X, y, layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
+# best_params, fitness, accuracy = PSO(X, y, layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
 # print(best_params)
 # weights = []
 # bias = []
