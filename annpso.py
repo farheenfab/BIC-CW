@@ -206,11 +206,18 @@ class Particle:
 
     def evaluate_fitness(self, X, y):
             # Evaluate fitness using the loss class
-            y_pred = self.ann.forward(X)
-            y_pred = y_pred.reshape(-1, 1) if y_pred.ndim > 1 else y_pred
+            y_pred = []
+            for sample in X:
+                # Assuming the ANN output is a single value between 0 and 1
+                output = self.ann.forward(sample)
+                prediction = 1 if output.flatten()[-1] >= 0.5 else 0
+                y_pred.append(prediction)
+            
+            # y_pred = y_pred.reshape(-1, 1) if y_pred.ndim > 1 else y_pred
             l = Loss(self.loss_function, y, y_pred)
             loss = l.evaluate()
             loss = np.mean(loss) if isinstance(loss, np.ndarray) else loss
+            print("Loss = ",loss)
             fitness = 1 - loss  # Assuming accuracy is inversely proportional to the loss
             return fitness
 
@@ -226,7 +233,7 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, be
             y_pred.append(prediction)
 
         y_pred = np.array(y_pred)
-        accuracy = np.mean(y_pred == y)
+        accuracy = np.sum(np.equal(y, y_pred)) / len(y)
         return accuracy
     
     particles = [Particle(layers, nodes, functions, loss_func) for _ in range(pop_size)]
@@ -416,8 +423,8 @@ def set_up():
 
     return(n_layers+1, n_nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
  
-# layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func = set_up()
-# best_params, fitness, accuracy = PSO(X, y, layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
+layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func = set_up()
+best_params, fitness, accuracy = PSO(X, y, layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
 # print(best_params)
 # weights = []
 # bias = []
