@@ -12,6 +12,7 @@ import tkinter.scrolledtext as scrolledtext
 import matplotlib.pyplot as plt
 import networkx as nx
 
+#initializing the variables to store informaton
 no_layers = None
 n_nodes = []
 temp_node_entries = []
@@ -21,8 +22,11 @@ f_path = None
 filename_label = None
 iris = False
 X, y = None, None
+loss_var = None
+global_pso_results = None
 
-
+#opens a file dialog and asks the user to select a dataset file
+#the file chosen is stored in the f_path variable
 def browse():
    global f_path, filename_label
    f_path = filedialog.askopenfilename(
@@ -36,6 +40,7 @@ def browse():
         filename_label.configure(text=filename)
         browse_button.configure(text="Select Another Dataset")
 
+#loads the iris dataset from sckit-learn
 def select_iris_dataset():
     global X, y, iris, f_path
     irisd = load_iris()
@@ -140,7 +145,7 @@ def next_screen2():
         temp_funcs.append(activation_var)
 
     next_button = tk.Button(gui, text='Next', command=check_funcs)
-    next_button.grid(row=i+9, padx=(200, 200))
+    next_button.grid(row=(num_layers*2)+2, padx=(200, 200))
 
 def check_funcs():
     global functions
@@ -169,10 +174,12 @@ def next_screen3():
     pso_thread = threading.Thread(target=run_pso, args=(progress_bar, progress_label))
     pso_thread.start()
 
+    check_pso_completion()
+
 def run_pso(progress_bar, progress_label):
     # Extract parameters from the GUI inputs
     # Assuming you have a way to extract X, y (input data and labels) from the GUI
-    global X, y
+    global X, y, global_pso_results
     if not iris:
         X, y = get_data_from_gui()
     else:
@@ -181,49 +188,25 @@ def run_pso(progress_bar, progress_label):
     total_epochs = int(epochs.get())
     # Run PSO and update progress bar
     # The PSO function needs to be adapted to update the progress bar
-    gbest_fitness, best_acc, best_params = PSO(X, y, int(no_layers.get()) + 1, n_nodes, functions, total_epochs, int(pop_size.get()),
-                                           float(alpha_w.get()), float(beta.get()), float(gamma.get()), float(delta.get()),
-                                           float(err_crit.get()), int(num_informants.get()), "MSE", progress_callback=lambda epoch: update_progress(progress_bar, progress_label, epoch, total_epochs))
+    gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch = PSO(X, y, int(no_layers.get()) + 1, n_nodes, functions, total_epochs, int(pop_size.get()),
+                                                                                float(alpha_w.get()), float(beta.get()), float(gamma.get()), float(delta.get()),
+                                                                                float(err_crit.get()), int(num_informants.get()), loss_var.get(), progress_callback=lambda epoch: update_progress(progress_bar, progress_label, epoch, total_epochs))
     
     print (gbest_fitness)
     print (best_acc)
     print (best_params)
+    global_pso_results = (gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch)
 
-    next_screen4(gbest_fitness, best_acc, best_params)
+def check_pso_completion():
+    if global_pso_results is not None:
+        # PSO computation is done, update GUI
+        gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch = global_pso_results
+        next_screen4(gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch)
+    else:
+        # PSO computation is not done, check again after some delay
+        gui.after(100, check_pso_completion)
 
-def next_screen5():
-
-    for widget in gui.winfo_children():
-        widget.grid_forget()
-
-    network_layers = [int(entry.get()) for entry in node_entries]  # Get values from Entry widgets
-    draw_ann(network_layers)
-
-    restart_button = tk.Button(gui, text='Restart', command=restart_gui)
-    restart_button.grid(row=0, padx=(200, 200))
-
-def restart_gui():
-    global no_layers, n_nodes, temp_node_entries, functions, temp_funcs, f_path, filename_label, iris, X, y
-
-    # Reset global variables to their initial state
-    no_layers = None
-    n_nodes = []
-    temp_node_entries = []
-    functions = []
-    temp_funcs = []
-    f_path = None
-    filename_label = None
-    iris = False
-    X, y = None, None
-
-    # Clear the existing elements
-    for widget in gui.winfo_children():
-        widget.grid_forget()
-
-    # Recreate the initial elements
-    create_initial_elements()
-
-def next_screen4(gbest_fitness, best_acc, best_params):
+def next_screen4(gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch):
     
     for widget in gui.winfo_children():
         widget.grid_forget()
@@ -248,7 +231,7 @@ def next_screen4(gbest_fitness, best_acc, best_params):
     # Disable editing in the scrolled text widget
     result_text.configure(state='disabled')
 
-    next_button = tk.Button(gui, text='Next', command=next_screen5)
+    next_button = tk.Button(gui, text='Next', command=lambda: next_screen5(loss_per_epoch, fitness_per_epoch))
     next_button.grid(row=2, padx=(100, 100))
 
 def update_progress(progress_bar, progress_label, current_epoch, total_epochs):
@@ -256,6 +239,73 @@ def update_progress(progress_bar, progress_label, current_epoch, total_epochs):
     progress_bar['value'] = epoch_percentage
     progress_label.config(text=f"Epoch: {current_epoch}/{total_epochs} ({epoch_percentage:.2f}%)")
     gui.update_idletasks()
+
+def next_screen5(loss_per_epoch, fitness_per_epoch):
+
+    for widget in gui.winfo_children():
+        widget.grid_forget()
+
+    network_layers = [int(entry.get()) for entry in node_entries]  # Get values from Entry widgets
+    draw_ann(network_layers)
+
+    next_button = tk.Button(gui, text='Next', command=lambda: next_screen6(loss_per_epoch, fitness_per_epoch))
+    next_button.grid(row=0, column=1, padx=(20, 20))
+
+def next_screen6(loss_per_epoch, fitness_per_epoch):
+
+    for widget in gui.winfo_children():
+        widget.grid_forget()
+    
+    epochs_value = int(epochs.get())
+    plt.plot(range(epochs_value), loss_per_epoch, label='Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.title("Loss per Epoch")
+    plt.show()
+
+    next_button = tk.Button(gui, text='Next', command=lambda: next_screen7(epochs_value, fitness_per_epoch))
+    next_button.grid(row=0, column=1, padx=(20, 20))
+
+def next_screen7(epochs, fitness_per_epoch):
+
+    for widget in gui.winfo_children():
+        widget.grid_forget()
+
+    plt.plot(range(epochs), fitness_per_epoch, label='Fitness')
+    plt.xlabel('Epochs')
+    plt.ylabel('Global Fitness')
+    plt.legend()
+    plt.title("Global Fitness per Epoch")
+    plt.show()
+
+    restart_button = tk.Button(gui, text='Restart', command=restart_gui)
+    restart_button.grid(row=0, padx=(20, 20))
+
+def restart_gui():
+    global no_layers, n_nodes, temp_node_entries, functions, temp_funcs, f_path, filename_label, iris, X, y
+
+    # Reset global variables to their initial state
+    no_layers = None
+    n_nodes = []
+    temp_node_entries = []
+    functions = []
+    temp_funcs = []
+    f_path = None
+    filename_label = None
+    iris = False
+    X, y = None, None
+
+    # Clear the existing elements
+    for widget in gui.winfo_children():
+        widget.grid_forget()
+
+    # Recreate the initial elements
+    create_initial_elements()
+
+def on_loss_selection(loss_var):
+    selected_option = loss_var.get()
+    print("Selected Option:", selected_option)
 
 def get_data_from_gui():
     # Implement this function to extract X, y (input data and labels) from the GUI
@@ -323,15 +373,14 @@ def draw_ann(layers):
                     G.add_edge(n1, n2)
 
     # Draw the ANN
+    plt.title('ANN Diagram') 
     nx.draw(G, pos, with_labels=False, node_size=700, node_color="skyblue", linewidths=2, font_size=15, font_weight='bold')
     plt.gca().invert_xaxis()  # Invert X-axis to have input layer on the left
     plt.show()
 
-
-
 def create_initial_elements():
 
-    global file_explorer, filename_label, browse_button, iris_button, header, no_layers, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants
+    global file_explorer, filename_label, browse_button, iris_button, header, no_layers, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_var
 
     file_explorer = tk.Label(gui, text="Select dataset file")
     file_explorer.grid(row=0, column=0, sticky="w")
@@ -394,8 +443,18 @@ def create_initial_elements():
     num_informants = tk.Spinbox(gui, from_=0, to=100000000, textvariable=noi_def)
     num_informants.grid(row=i+8, column=1)
 
+    tk.Label(gui, text='Select the Loss function').grid(row=i+9, sticky="w")
+    loss_var = tk.StringVar(gui)
+    options = ["MSE", "Binary Cross Entropy", "Hinge"]
+    loss_var.set(options[0])
+    loss_menu_width = 18
+    loss_menu = tk.OptionMenu(gui, loss_var, *options)
+    loss_menu.config(width=loss_menu_width)  # Set the width of the OptionMenu
+    loss_menu.bind("<Configure>", on_loss_selection(loss_var))
+    loss_menu.grid(row=i+9, column=1)
+
     next_button = tk.Button(gui, text='Next', command=check_dataset)
-    next_button.grid(row=i+9, column=1, padx=(3, 220))
+    next_button.grid(row=i+10, column=1, padx=(3, 220))
 
 # Create the main window
 gui = tk.Tk()

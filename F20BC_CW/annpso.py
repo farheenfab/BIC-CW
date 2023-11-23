@@ -1,11 +1,11 @@
 import numpy as np
-import pandas as pd
-from tqdm import tqdm
 import warnings
-import sys
+import pandas as pd
+import matplotlib.pyplot as plt
 
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow encountered in exp")
 
+# Activation class - checks the activation function passed and then uses the evaluate method of the respective subclass function
 class Activation:
     def __init__(self, activation):
         self.activation = activation
@@ -18,6 +18,7 @@ class Activation:
         elif self.activation == "ReLU":
             return ReLU.evaluate(x)
 
+    # Not used as backpropagation is not implemented
     def derivate(self, x):
         if self.activation == "Logistic":
             return Sigmoid.derivative(x)
@@ -26,42 +27,41 @@ class Activation:
         elif self.activation == "ReLU":
             return ReLU.derivative(x)
 
-# sigmoid activation – sub class of activation
+# Sigmoid Activation Function – sub class of Activation
 class Sigmoid (Activation):
     def evaluate(x):
         return 1 / (1 + np.exp(-x))
     
-    # derivative of f = sigma * (1- sigma)
+    # Not used as backpropagation is not implemented
     def derivative(x):
         f = 1 / (1 + np.exp(-x))
         return f * (1 - f)
 
-# tanh activation – sub class of activation
+# tanh Activation Function – sub class of Activation
 class tanh(Activation):
     def evaluate(x):
         return np.tanh(x)
 
-    # derivative of tanh(x) = sech^2 (x) = 1- tanh^2 (x)
+    # Not used as backpropagation is not implemented
     def derivative(x):
         f = np.tanh(x)
         return 1 - f**2
 
-# ReLU activation – sub class of activation
+# ReLU Activation Function – sub class of Activation
 class ReLU(Activation):
     def evaluate(x):
         return np.maximum(0, x)
-
-    # derivative of max(0, x) = 0 if x < 0, 1 if x > 0 because slope is uniform which is the derivative of the ReLU Graph(1).
+    
+    # Not used as backpropagation is not implemented
     def derivative(x):
         return np.where(x > 0, 1, 0)
 
-# abstract Loss class
-# provides evaluate and derivative methods class Loss:
+# Loss class - checks the activation function passed then uses the evaluate method of the respective subclass function
 class Loss:
     def __init__(self, x, y, t):
         self.x = x
-        self.y = y # actual y labels
-        self.t = t # predicted y labels
+        self.y = y # Actual y labels
+        self.t = t # Predicted y labels
 
     def evaluate(self): 
         if self.x == "MSE":
@@ -82,12 +82,12 @@ class Loss:
 # MSE (Mean Squared Error) Loss – subclass of Loss
 class MSE(Loss):
     def evaluate(y, t):
-        return (1/2)*((t-y)**2) #1/2*(t-y)**2
+        return (1/2)*((t-y)**2)
     
     def derivative(y, t): 
         return t-y
 
-#Binary cross entropy Loss – subclass of Loss 
+# Binary Cross Entropy Loss – subclass of Loss 
 class Binary_cross_entropy(Loss):
     def evaluate(y,t):
         y_pred = np.clip(y, 1e-7, 1 - 1e-7)
@@ -98,10 +98,10 @@ class Binary_cross_entropy(Loss):
     def derivative(y,t):
         return t/y + (1-t) /(1-y)
     
-#Hinge Loss – subclass of Loss 
+# Hinge Loss – subclass of Loss 
 class Hinge(Loss):
     def evaluate(y,t):
-        return max(0, 1-t*y)
+        return np.maximum(0, 1-t*y)
 
     def derivative(y,t): 
         if 1 - t * y > 0:
@@ -109,16 +109,22 @@ class Hinge(Loss):
         else:
             return 0
 
+# Layer class - used to create a layer that will be used in the Network class
 class Layer:
+    # Takes input parameters and initializes them: 
+    # > number of input nodes (nb_inputs)
+    # > number of current layer nodes (nb_nodes)
+    # > activation function
     def __init__(self, nb_inputs, nb_nodes, activation):
         self.nb_nodes = nb_nodes
-        size = (nb_nodes, nb_inputs)
         self.activation = activation
-        # generating random weights for each neuron in the layer
+        # generating random weights for each neuron/node in the layer
+        size = (nb_nodes, nb_inputs)
         self.W = np.random.uniform(-1, 1, size)
-        # generating random biases for each neuron in the layer
+        # generating random biases for each neuron/node in the layer
         self.B = np.random.uniform(-1, 1, nb_nodes)
 
+    # forward() takes data as input and moves one layer forward through the network using the weights, biases and activation function
     def forward(self, fin):
         fin_transposed = fin.T if fin.ndim > 1 else fin
         active = Activation(self.activation)
@@ -126,48 +132,45 @@ class Layer:
         out = active.evaluate(np.dot(self.W, fin_transposed) + B_reshaped)
         return out.T
     
+    # update() updates the weights and biases using gradient information and learning rate
+    # As gradient descent was not used, update() was also not used anywhere
     def update(self, g, lamda):
         self.W = self.W - lamda * g[0]
         self.B = self.B - lamda * g[1]
-        """
-        Update weights and biases using gradient information and learning rate.
-
-        Parameters:
-        g (numpy.ndarray): Gradient of the loss with respect to the layer's output.
-        learning_rate (float): Learning rate for the update.
-
-        Returns:
-        None
-        """
         
-#Network class encapsulates the list of layers and provides forward method
+# Network class - 
+# > generates and initializes a list of layers
+# > provides append method to append a layer into the layers list of the Network
+# > provides forward method to move forward through the whole network
+# > provides get_parameters method that extracts all weights and biases, flattens them and concatenates into a single vector
+# > provides set_parameters method that restores weights and biases from the flat vector
 class Network:
-    def __init__(self): #initialise the empty list of layers 
+    def __init__(self): 
         self.layers = []
     
-    def append(self, layer): #to append a layer to the network 
+    def append(self, layer): 
         self.layers.append(layer)
 
     # Forward pass through layers of the neural network, assumes input data has already been passed into the network and 
     # continues forward pass from last layer's output.
-    # Used internally within network to pass data through the layers
     def forward(self, data_in): 
         out = data_in
         for layer in self.layers:
             out = layer.forward(out)
         return out
     
+    # Extracts all weights and biases, flattens them, and concatenates into a single vector
     def get_parameters(self):
-        # Extract all weights and biases, flatten them, and concatenate into a single vector
         params = []
         for layer in self.layers:
             params.append(layer.W.flatten())
             params.append(layer.B.flatten())
         return np.concatenate(params)
     
+    # Restores the weights and biases from the flat vector
     def set_parameters(self, flat_parameters):
-        # Restore weights and biases from the flat vector
-        pointer = 0  # This pointer will keep track of where we are in the flat_parameters vector
+        # Pointer keeps track of where we are in the flat_parameters vector
+        pointer = 0  
         for layer in self.layers:
             weight_shape = layer.W.shape
             bias_shape = layer.B.shape
@@ -181,7 +184,7 @@ class Network:
             layer.B = flat_parameters[pointer:pointer + bias_size].reshape(bias_shape)
             pointer += bias_size
 
-#Create a network using the parameters provides by the user 
+# ANNBuilder class - Creates a network using the parameters provides by the user 
 class ANNBuilder:
     def build(nb_layers, list_nb_nodes, list_functions): 
         ann = Network()
@@ -193,41 +196,42 @@ class ANNBuilder:
             ann.append(layer)
         return ann
 
+# Particle class - Creates a particle object with the different informations needed including the informants information
 class Particle:
     def __init__(self, layers, nodes, functions, loss_func):
-        self.ann = ANNBuilder.build(layers, nodes, functions)
-        self.fitness = -float('inf')  # Initialize with negative infinity
-        self.best_fitness = -float('inf')  # Initialize with negative infinity
-        self.best_ann_params = self.ann.get_parameters()
-        self.v = np.zeros_like(self.best_ann_params)  # Initialize velocity as zeros
-        self.informants = []  # List of other particles that are informants
-        self.best_informant_params = self.best_ann_params
-        self.loss_function = loss_func
+        self.ann = ANNBuilder.build(layers, nodes, functions)       # Each particle has an ANN
+        self.fitness = -float('inf')                                # Initialize with negative infinity
+        self.best_fitness = -float('inf')                           # Initialize with negative infinity
+        self.best_ann_params = self.ann.get_parameters()            # Stores best parameters captured by the ann
+        self.v = np.zeros_like(self.best_ann_params)                # Initialize velocity as zeros
+        self.informants = []                                        # List that stores other particles that are informants
+        self.best_informant_params = self.best_ann_params           # Stores the best parameters captured by informants
+        self.loss_function = loss_func                              # Stores loss function given by the user
 
+    # Evaluates fitness of the particle using the loss function
     def evaluate_fitness(self, X, y):
-            # Evaluate fitness using the loss class
-            y_pred = []
-            for sample in X:
-                # Assuming the ANN output is a single value between 0 and 1
-                output = self.ann.forward(sample)
-                prediction = 1 if output.flatten()[-1] >= 0.5 else 0
-                y_pred.append(prediction)
-            
-            # y_pred = y_pred.reshape(-1, 1) if y_pred.ndim > 1 else y_pred
+            # If loss function is MSE or Hinge, for each sample we move forward through the ANN and the get the y_pred
+            if self.loss_function == "MSE" or self.loss_function == "Hinge":
+                y_pred = []
+                for sample in X:
+                    output = self.ann.forward(sample)
+                    prediction = 1 if output.flatten()[-1] >= 0.5 else 0
+                    y_pred.append(prediction)
+            # Else, we move forward through the ANN using the whole X dataset and reshape the array if the dimensions of y_pred are greater than 1
+            else:
+                y_pred = self.ann.forward(X)
+                y_pred = y_pred.reshape(-1, 1) if y_pred.ndim > 1 else y_pred
+            # We then calculate the loss and then get the fitness but subtracting 1 - loss
             l = Loss(self.loss_function, y, y_pred)
             loss = l.evaluate()
             loss = np.mean(loss) if isinstance(loss, np.ndarray) else loss
-            print("Loss = ",loss)
-            fitness = 1 - loss  # Assuming accuracy is inversely proportional to the loss
-            return fitness
+            fitness = 1 - loss
+            return fitness, loss
 
-def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, beta=2, gamma=2, delta=2, err_crit=0.00001, num_informants=3, loss_func="MSE", progress_callback=None):
-    
-    def evaluate_ann(ann, X, y):
-        # Assuming X is the feature matrix and y is the target vector (0 or 1)
+# Evalutes ANN and calculates the accuracy of the ANN
+def evaluate_ann(ann, X, y):
         y_pred = []
         for sample in X:
-            # Assuming the ANN output is a single value between 0 and 1
             output = ann.forward(sample)
             prediction = 1 if output.flatten()[-1] >= 0.5 else 0
             y_pred.append(prediction)
@@ -235,9 +239,17 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, be
         y_pred = np.array(y_pred)
         accuracy = np.sum(np.equal(y, y_pred)) / len(y)
         return accuracy
+
+# PSO method - Implements the Particle Swarm Optimization algorithm using ANN (It considers each particle as an ANN)
+# Takes input: X data, y label data, list of number of nodes, list of activation function
+# for each layer, epochs, population size, alpha weight, beta, gamma, delta for updating 
+# velocity, error criterion, number of informants, loss function, progess_callback used for the progress bar on the GUI
+def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, beta=2, gamma=2, delta=2, err_crit=0.00001, num_informants=3, loss_func="MSE", progress_callback=None):
     
+    # Creates a Particle class object based on the number of population size and puts all the particles in a list
     particles = [Particle(layers, nodes, functions, loss_func) for _ in range(pop_size)]
 
+    # We go through all the particles and choose random particles as informants (except the current particle) based on the number of informants specified
     for p in particles:
         p.informants = np.random.choice([particle for particle in particles if particle != p], size=num_informants, replace=False)
 
@@ -245,12 +257,18 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, be
     gbest_fitness = -float('inf')
     gbest_params = particles[0].best_ann_params
 
-    # progress_bar = tqdm(total=epochs, desc='Epochs', position=0, leave=True)
+    loss_per_epochs = []
+    fitness_per_epoch = []
+
+    # We run a for loop for each epoch
     for epoch in range(epochs):
+        # Stores all the losses calculated per epoch temporarily
+        temp_loss = []
         for p in particles:
-            # Evaluate current fitness
+            # Evaluate accuracy of the ann and the fitness of the particle
             accuracy = evaluate_ann(p.ann, X, y)
-            fitness = p.evaluate_fitness(X, y)
+            fitness, loss = p.evaluate_fitness(X, y)
+            temp_loss.append(loss)
             
             # Update personal best if the current fitness is better
             if fitness > p.best_fitness:
@@ -268,7 +286,7 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, be
                 best_acc = accuracy
                 gbest_params = p.ann.get_parameters()
             
-            # Update velocity and position
+            # Update velocity using the equation given in Course PPT
             r1 = np.random.rand(p.v.shape[0])
             r2 = np.random.rand(p.v.shape[0])
             r3 = np.random.rand(p.v.shape[0])
@@ -277,45 +295,27 @@ def PSO(X, y, layers, nodes, functions, epochs=50, pop_size=100, alpha_w=0.5, be
             # Update position with new velocity
             new_position = p.ann.get_parameters() + p.v
             p.ann.set_parameters(new_position)
-        # Check for early stopping
+        
+        # We calculate the mean of temp_loss and append the value to loss_per_epochs
+        loss_per_epochs.append(np.mean(temp_loss))
+        # We append global the best fitness into fitness_per_epoch
+        fitness_per_epoch.append(gbest_fitness)
+
+        # Check for early stopping and stop if the fitness criterion is met
         if gbest_fitness >= 1 - err_crit:
             print("Stopping early due to meeting fitness criterion")
             break
         
+        # Used for the progress bar in the GUI
         if progress_callback is not None:
             progress_callback(epoch + 1)
 
-        # progress_bar.update(1)
-        # print("Epoch = ", epoch+1)
-    # progress_bar.close()
     print('\nParticle Swarm Optimisation finished')
     print('Best fitness achieved:', gbest_fitness)
     print('Best accuracy achieved:', best_acc)
-    return gbest_fitness, best_acc, gbest_params # Return the best parameters found
+    return gbest_fitness, best_acc, gbest_params, loss_per_epochs, fitness_per_epoch 
 
-# Load the dataset
-# from sklearn.datasets import load_iris
-# iris = load_iris()
-# X = iris.data
-# y = iris.target
-
-f = "data_banknote_authentication.txt"
-data = pd.read_csv(f, header=None)
-
-# Extract features (X) and labels (y)
-X = data.iloc[:, :-1].values
-y = data.iloc[:, -1].values
-
-# Set hyper-parameters
-# layers = 3
-# nodes = [3, 3, 5, 1]
-# functions = ["Logistic", "Hyperbolic tangent", "ReLU", "Logistic"]
-# epochs = 50
-
-# Run PSO with specified epochs and learning rate
-# best_params = PSO(X, y, layers, nodes, functions, epochs)
-# print(best_params)
-
+# Set up for running using terminal
 def set_up():
     # Getting number of hidden layers
     n_layers = int(input("Enter number of hidden layers: "))
@@ -328,7 +328,7 @@ def set_up():
     output_node = int(input("Enter number of nodes for Output Layer: "))
     n_nodes.append(output_node)
 
-    # Getting Activation Functions
+    # Getting Activation Functions for each layer
     functions = []
     print(f"Select one of the below listed activation functions for each of the layers: ")
     print("1 - Logistic")
@@ -372,30 +372,39 @@ def set_up():
                     elif active_func == 3:
                         functions.append("ReLU")
 
+    # Getting number of epochs
     epochs_input = input("Enter number of epochs (default = 50): ")
     epochs = int(epochs_input) if epochs_input else 50
 
+    # Getting population size
     pop_in = input("Enter population size (default = 100): ")
     pop_size = int(pop_in) if pop_in else 100
 
+    # Getting alpha weight value to be used in the update velocity equation
     alpha_w_in = input("Enter alpha value (default = 0.5): ")
     alpha_w = int(alpha_w_in) if alpha_w_in else 0.5
 
+    # Getting beta value to be used in the update velocity equation
     beta_in = input("Enter beta value (default = 2): ")
     beta = int(beta_in) if beta_in else 2
 
+    # Getting gamma value to be used in the update velocity equation
     gamma_in = input("Enter gamma value (default = 2): ")
     gamma = int(gamma_in) if gamma_in else 2
 
+    # Getting delta value to be used in the update velocity equation
     delta_in = input("Enter delta value (default = 2): ")
     delta = int(delta_in) if delta_in else 2
 
+    # Getting error criterion
     err_crit_in = input("Enter error criterion (default = 0.00001): ")
     err_crit = float(err_crit_in) if err_crit_in else 0.00001
 
+    # Getting number of informants
     num_informants_in = input("Enter the number of informants (default = 3): ")
     num_informants = int(num_informants_in) if num_informants_in else 3
 
+    # Getting the loss function
     print(f"Select one of the below listed Loss Functions: ")
     print("1 - MSE")
     print("2 - Binary Cross Entropy")
@@ -420,68 +429,34 @@ def set_up():
                 loss_func = "Binary Cross Entropy"
             elif loss_func_in == 3:
                 loss_func = "Hinge"
-
+    
+    # We return n_layers+1 because we also consider the output later
     return(n_layers+1, n_nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
- 
-layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func = set_up()
-best_params, fitness, accuracy = PSO(X, y, layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
-# print(best_params)
-# weights = []
-# bias = []
-# for i in range(0, len(best_params), 2):
-#     weights.append(best_params[i])
 
-# for i in range(1, len(best_params), 2):
-#     bias.append(best_params[i])
+# Please change the location of the file and header value accordingly, if using terminal.
+# After you enter the Loss function option, it will take some time based on the dataset. So please wait until it prints the output.
+# Uncomment the below lines to run the PSO on Terminal
 
-# print("The best parameters: ", best_params)
-# print("The best parameters have been split into weights and biases below:")
-# print("Weights: \n", weights)
-# print("Bias: \n", bias)
+# f = "data_banknote_authentication.txt"
+# data = pd.read_csv(f, header=None)
 
-# def format_best_params(best_params, nodes):
-#     formatted_params = {}
-#     pointer = 0
+# X = data.iloc[:, :-1].values
+# y = data.iloc[:, -1].values
 
-#     # Iterate through layers
-#     for i in range(len(nodes) - 1):
-#         # Number of nodes in current and next layer
-#         current_layer_nodes = nodes[i]
-#         next_layer_nodes = nodes[i+1]
+# layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func = set_up()
+# fitness, accuracy, best_params, loss_per_epoch, fitness_per_epoch = PSO(X, y, layers, nodes, functions, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_func)
+# print ("Best parameters = ", best_params)
 
-#         # Calculate the size of weights and biases for current layer
-#         weight_size = current_layer_nodes * next_layer_nodes
-#         bias_size = next_layer_nodes
-
-#         # Extract weights
-#         weights = best_params[pointer:pointer + weight_size].reshape(next_layer_nodes, current_layer_nodes)
-#         pointer += weight_size
-
-#         # Extract biases
-#         biases = best_params[pointer:pointer + bias_size]
-#         pointer += bias_size
-
-#         # Store in a dictionary
-#         formatted_params[f'Layer {i+1}'] = {'Weights': weights, 'Biases': biases}
-
-#     return formatted_params
-
-# # Example usage
-# formatted_best_params = format_best_params(best_params, nodes)
-# for layer, params in formatted_best_params.items():
-#     print(f"{layer} Parameters:")
-#     print("Weights:\n", params['Weights'])
-#     print("Biases:\n", params['Biases'], "\n")
-
-
-# print(best_params)
-
-# run experiment
-#loss, accuracy = mini_batch(ann, data, classes, epochs, learning_rate, loss_func, batch_size) 
-
-# plot, display results
-# plt.plot(range(epochs), loss, label='Loss')
+# plt.plot(range(epochs), loss_per_epoch, label='Loss')
 # plt.xlabel('Epochs')
 # plt.ylabel('Loss')
 # plt.legend()
+# plt.title("Loss per Epoch")
+# plt.show()
+
+# plt.plot(range(epochs), fitness_per_epoch, label='Fitness')
+# plt.xlabel('Epochs')
+# plt.ylabel('Fitness')
+# plt.legend()
+# plt.title("Fitness per Epoch")
 # plt.show()
