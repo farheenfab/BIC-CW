@@ -12,7 +12,7 @@ import tkinter.scrolledtext as scrolledtext
 import matplotlib.pyplot as plt
 import networkx as nx
 
-#initializing the variables to store informaton
+# Initializing the variables to store informaton
 no_layers = None
 n_nodes = []
 temp_node_entries = []
@@ -25,8 +25,8 @@ X, y = None, None
 loss_var = None
 global_pso_results = None
 
-#opens a file dialog and asks the user to select a dataset file
-#the file chosen is stored in the f_path variable
+# Opens a file dialog and asks the user to select a dataset file
+# The file chosen is stored in the f_path variable
 def browse():
    global f_path, filename_label
    f_path = filedialog.askopenfilename(
@@ -40,7 +40,7 @@ def browse():
         filename_label.configure(text=filename)
         browse_button.configure(text="Select Another Dataset")
 
-#loads the iris dataset from sckit-learn
+# Loads the iris dataset from sckit-learn
 def select_iris_dataset():
     global X, y, iris, f_path
     irisd = load_iris()
@@ -52,6 +52,7 @@ def select_iris_dataset():
     browse_button.configure(text="Select Another Dataset")
     return
 
+#checks if a dataset is selected or not and displays warning if not
 def check_dataset():
     if f_path == None:
         messagebox.showwarning("Warning", "Please Select a Dataset!")
@@ -61,6 +62,8 @@ def check_dataset():
     else:
         next_screen1()
 
+#Thes on_value_change functions are callback functions triggered when spinbox values change.
+#They print the updated values.
 def on_value_change(*args):
     value = alpha_w.get()
     print(value)
@@ -81,6 +84,7 @@ def on_value_change_4(*args):
     value4 = delta.get()
     print(value4)    
     
+#clears existing GUI elements and calls the create_nodes function to set up input for the neural network.
 def next_screen1():
     
     # Clear the existing elements
@@ -89,6 +93,7 @@ def next_screen1():
 
     create_nodes()
 
+# generates GUI elements for entering the number of nodes in each layer and the output layer.
 def create_nodes():
     global node_entries
     node_entries = []
@@ -104,9 +109,11 @@ def create_nodes():
         node_entry.grid(row=i, column=1)
         node_entries.append(node_entry)
 
+    #sets up a button to proceed to the next screen.
     next_button = tk.Button(gui, text='Next', command=next_screen2)
     next_button.grid(row=num_layers+1, column=1, padx=(3, 220))
 
+#gets the values entered for the number of nodes in each layer
 def next_screen2():
 
     global n_nodes
@@ -144,6 +151,7 @@ def next_screen2():
 
         temp_funcs.append(activation_var)
 
+    # button to proceed to the next screen 
     next_button = tk.Button(gui, text='Next', command=check_funcs)
     next_button.grid(row=(num_layers*2)+2, padx=(200, 200))
 
@@ -178,7 +186,6 @@ def next_screen3():
 
 def run_pso(progress_bar, progress_label):
     # Extract parameters from the GUI inputs
-    # Assuming you have a way to extract X, y (input data and labels) from the GUI
     global X, y, global_pso_results
     if not iris:
         X, y = get_data_from_gui()
@@ -187,7 +194,7 @@ def run_pso(progress_bar, progress_label):
     
     total_epochs = int(epochs.get())
     # Run PSO and update progress bar
-    # The PSO function needs to be adapted to update the progress bar
+    # The PSO function adapted to update the progress bar
     gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch = PSO(X, y, int(no_layers.get()) + 1, n_nodes, functions, total_epochs, int(pop_size.get()),
                                                                                 float(alpha_w.get()), float(beta.get()), float(gamma.get()), float(delta.get()),
                                                                                 float(err_crit.get()), int(num_informants.get()), loss_var.get(), progress_callback=lambda epoch: update_progress(progress_bar, progress_label, epoch, total_epochs))
@@ -220,7 +227,7 @@ def next_screen4(gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_p
     result_text = scrolledtext.ScrolledText(gui, wrap=tk.WORD, width=40, height=10)
     result_text.grid(column=0, row=1, columnspan=2, padx=10, pady=10)
 
-    # Insert the results into the scrolled text widget
+    # Inserting the results into the scrolled text widget
     result_text.insert(tk.END, f"Best Fitness: {gbest_fitness}\n")
     result_text.insert(tk.END, f"Best Accuracy: {best_acc}\n")
     
@@ -309,7 +316,6 @@ def on_loss_selection(loss_var):
 
 def get_data_from_gui():
     # Implement this function to extract X, y (input data and labels) from the GUI
-    # Example: X, y = ... 
     if header.get() == 1:
         data = pd.read_csv(f_path, header=0)
     else:
@@ -447,7 +453,7 @@ def create_initial_elements():
     loss_var = tk.StringVar(gui)
     options = ["MSE", "Binary Cross Entropy", "Hinge"]
     loss_var.set(options[0])
-    loss_menu_width = 18
+    loss_menu_width = 18 #adjusting the width length manually
     loss_menu = tk.OptionMenu(gui, loss_var, *options)
     loss_menu.config(width=loss_menu_width)  # Set the width of the OptionMenu
     loss_menu.bind("<Configure>", on_loss_selection(loss_var))
