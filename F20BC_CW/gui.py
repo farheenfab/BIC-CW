@@ -52,7 +52,7 @@ def select_iris_dataset():
     browse_button.configure(text="Select Another Dataset")
     return
 
-#checks if a dataset is selected or not and displays warning if not
+# Checks if a dataset is selected or not and displays warning if no dataset is selected
 def check_dataset():
     if f_path == None:
         messagebox.showwarning("Warning", "Please Select a Dataset!")
@@ -62,8 +62,8 @@ def check_dataset():
     else:
         next_screen1()
 
-#Thes on_value_change functions are callback functions triggered when spinbox values change.
-#They print the updated values.
+# The below on_value_change functions are callback functions triggered when spinbox values change.
+# They print the updated values.
 def on_value_change(*args):
     value = alpha_w.get()
     print(value)
@@ -84,7 +84,7 @@ def on_value_change_4(*args):
     value4 = delta.get()
     print(value4)    
     
-#clears existing GUI elements and calls the create_nodes function to set up input for the neural network.
+# Clears existing GUI elements and calls the create_nodes function to set up input for the neural network.
 def next_screen1():
     
     # Clear the existing elements
@@ -93,7 +93,7 @@ def next_screen1():
 
     create_nodes()
 
-# generates GUI elements for entering the number of nodes in each layer and the output layer.
+# Generates GUI elements for entering the number of nodes in each layer and the output layer.
 def create_nodes():
     global node_entries
     node_entries = []
@@ -109,15 +109,15 @@ def create_nodes():
         node_entry.grid(row=i, column=1)
         node_entries.append(node_entry)
 
-    #sets up a button to proceed to the next screen.
+    # Sets up a button to proceed to the next screen.
     next_button = tk.Button(gui, text='Next', command=next_screen2)
     next_button.grid(row=num_layers+1, column=1, padx=(3, 220))
 
-#gets the values entered for the number of nodes in each layer
+# Gets the values entered for the number of nodes in each layer and generates GUI elements for selecting activation function for each layer.
 def next_screen2():
 
     global n_nodes
-    n_nodes = [int(entry.get()) for entry in node_entries]  # Get values from Entry widgets
+    n_nodes = [int(entry.get()) for entry in node_entries]  
     print(n_nodes)
 
     # Clear the existing elements
@@ -151,13 +151,14 @@ def next_screen2():
 
         temp_funcs.append(activation_var)
 
-    # button to proceed to the next screen 
+    # Button to proceed to the next screen 
     next_button = tk.Button(gui, text='Next', command=check_funcs)
     next_button.grid(row=(num_layers*2)+2, padx=(200, 200))
 
+# Checks if all activation functions are selected for all layers. If not, then it gives a warning.
 def check_funcs():
     global functions
-    functions = [entry.get() for entry in temp_funcs]  # Get values from Entry widgets
+    functions = [entry.get() for entry in temp_funcs] 
     print(functions)
 
     all_selected = all(func.get() for func in temp_funcs)
@@ -167,6 +168,7 @@ def check_funcs():
     else:
         next_screen3()
 
+# Clears existing GUI elements, sets up the progress bar and starts PSO
 def next_screen3():
 
     for widget in gui.winfo_children():
@@ -184,6 +186,7 @@ def next_screen3():
 
     check_pso_completion()
 
+# Runs PSO in a separate thread and updates the progress bar
 def run_pso(progress_bar, progress_label):
     # Extract parameters from the GUI inputs
     global X, y, global_pso_results
@@ -193,8 +196,7 @@ def run_pso(progress_bar, progress_label):
         pass
     
     total_epochs = int(epochs.get())
-    # Run PSO and update progress bar
-    # The PSO function adapted to update the progress bar
+    # The PSO function is adapted to update the progress bar
     gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch = PSO(X, y, int(no_layers.get()) + 1, n_nodes, functions, total_epochs, int(pop_size.get()),
                                                                                 float(alpha_w.get()), float(beta.get()), float(gamma.get()), float(delta.get()),
                                                                                 float(err_crit.get()), int(num_informants.get()), loss_var.get(), progress_callback=lambda epoch: update_progress(progress_bar, progress_label, epoch, total_epochs))
@@ -204,15 +206,17 @@ def run_pso(progress_bar, progress_label):
     print (best_params)
     global_pso_results = (gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch)
 
+# Checks if PSO computation is done and allows to go to the next screen. If not, then check again after some delay.
 def check_pso_completion():
     if global_pso_results is not None:
-        # PSO computation is done, update GUI
+        # If PSO computation is done, update GUI and move to next screen
         gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch = global_pso_results
         next_screen4(gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch)
     else:
-        # PSO computation is not done, check again after some delay
+        # If PSO computation is not done, check again after some delay
         gui.after(100, check_pso_completion)
 
+# Displays results after PSO is completed
 def next_screen4(gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch):
     
     for widget in gui.winfo_children():
@@ -223,11 +227,9 @@ def next_screen4(gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_p
 
     formatted_params = format_best_params(best_params, n_nodes)
 
-    # Create a scrolled text widget
     result_text = scrolledtext.ScrolledText(gui, wrap=tk.WORD, width=40, height=10)
     result_text.grid(column=0, row=1, columnspan=2, padx=10, pady=10)
 
-    # Inserting the results into the scrolled text widget
     result_text.insert(tk.END, f"Best Fitness: {gbest_fitness}\n")
     result_text.insert(tk.END, f"Best Accuracy: {best_acc}\n")
     
@@ -241,12 +243,14 @@ def next_screen4(gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_p
     next_button = tk.Button(gui, text='Next', command=lambda: next_screen5(loss_per_epoch, fitness_per_epoch))
     next_button.grid(row=2, padx=(100, 100))
 
+# Updates the progress bar during PSO execution
 def update_progress(progress_bar, progress_label, current_epoch, total_epochs):
     epoch_percentage = (current_epoch / total_epochs) * 100
     progress_bar['value'] = epoch_percentage
     progress_label.config(text=f"Epoch: {current_epoch}/{total_epochs} ({epoch_percentage:.2f}%)")
     gui.update_idletasks()
 
+# GUI elements used to call draw_ann that displays the ANN diagram
 def next_screen5(loss_per_epoch, fitness_per_epoch):
 
     for widget in gui.winfo_children():
@@ -258,6 +262,7 @@ def next_screen5(loss_per_epoch, fitness_per_epoch):
     next_button = tk.Button(gui, text='Next', command=lambda: next_screen6(loss_per_epoch, fitness_per_epoch))
     next_button.grid(row=0, column=1, padx=(20, 20))
 
+# Displays the loss per epoch graph
 def next_screen6(loss_per_epoch, fitness_per_epoch):
 
     for widget in gui.winfo_children():
@@ -274,6 +279,7 @@ def next_screen6(loss_per_epoch, fitness_per_epoch):
     next_button = tk.Button(gui, text='Next', command=lambda: next_screen7(epochs_value, fitness_per_epoch))
     next_button.grid(row=0, column=1, padx=(20, 20))
 
+# Displays the global fitness per fitness graph
 def next_screen7(epochs, fitness_per_epoch):
 
     for widget in gui.winfo_children():
@@ -289,6 +295,7 @@ def next_screen7(epochs, fitness_per_epoch):
     restart_button = tk.Button(gui, text='Restart', command=restart_gui)
     restart_button.grid(row=0, padx=(20, 20))
 
+# Restarts the GUI by resetting global variables to their initial state
 def restart_gui():
     global no_layers, n_nodes, temp_node_entries, functions, temp_funcs, f_path, filename_label, iris, X, y
 
@@ -310,12 +317,13 @@ def restart_gui():
     # Recreate the initial elements
     create_initial_elements()
 
+# Callback function for loss function selection
 def on_loss_selection(loss_var):
     selected_option = loss_var.get()
     print("Selected Option:", selected_option)
 
+# Extracts X, y (input data and labels) from the GUI
 def get_data_from_gui():
-    # Implement this function to extract X, y (input data and labels) from the GUI
     if header.get() == 1:
         data = pd.read_csv(f_path, header=0)
     else:
@@ -328,6 +336,7 @@ def get_data_from_gui():
     print(data.head())
     return X, y
 
+# Formats the best parameters obtained from PSO to be shown in a proper format
 def format_best_params(best_params, nodes):
     formatted_params = {}
     pointer = 0
@@ -349,8 +358,8 @@ def format_best_params(best_params, nodes):
 
     return formatted_params
 
+# Draws the ANN diagram using networkx and matplotlib
 def draw_ann(layers):
-    # Create a new graph
     G = nx.DiGraph()
 
     # Variables to keep track of node positions
@@ -358,11 +367,9 @@ def draw_ann(layers):
     v_spacing = 1
     h_spacing = 2
 
-    # Node counter
     node_count = 0
 
-    # Create nodes with positions
-    layer_nodes = []  # List to hold nodes for each layer
+    layer_nodes = []  
     for i, layer_size in enumerate(layers):
         nodes = range(node_count, node_count + layer_size)
         layer_nodes.append(nodes)
@@ -370,7 +377,6 @@ def draw_ann(layers):
             pos[node] = ((-i * h_spacing), (j - layer_size / 2) * v_spacing)
         node_count += layer_size
 
-    # Add nodes and edges to the graph
     for i, nodes in enumerate(layer_nodes):
         G.add_nodes_from(nodes)
         if i > 0:
@@ -378,12 +384,12 @@ def draw_ann(layers):
                 for n2 in nodes:
                     G.add_edge(n1, n2)
 
-    # Draw the ANN
     plt.title('ANN Diagram') 
     nx.draw(G, pos, with_labels=False, node_size=700, node_color="skyblue", linewidths=2, font_size=15, font_weight='bold')
     plt.gca().invert_xaxis()  # Invert X-axis to have input layer on the left
     plt.show()
 
+# Creates the initial elements of the GUI to be used for PSO
 def create_initial_elements():
 
     global file_explorer, filename_label, browse_button, iris_button, header, no_layers, epochs, pop_size, alpha_w, beta, gamma, delta, err_crit, num_informants, loss_var
@@ -453,9 +459,9 @@ def create_initial_elements():
     loss_var = tk.StringVar(gui)
     options = ["MSE", "Binary Cross Entropy", "Hinge"]
     loss_var.set(options[0])
-    loss_menu_width = 18 #adjusting the width length manually
+    loss_menu_width = 18
     loss_menu = tk.OptionMenu(gui, loss_var, *options)
-    loss_menu.config(width=loss_menu_width)  # Set the width of the OptionMenu
+    loss_menu.config(width=loss_menu_width) 
     loss_menu.bind("<Configure>", on_loss_selection(loss_var))
     loss_menu.grid(row=i+9, column=1)
 
