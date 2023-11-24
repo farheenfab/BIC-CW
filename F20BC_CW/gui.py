@@ -271,9 +271,9 @@ def next_screen6(loss_per_epoch, fitness_per_epoch):
     epochs_value = int(epochs.get())
     plt.plot(range(epochs_value), loss_per_epoch, label='Loss')
     plt.xlabel('Epochs')
-    plt.ylabel('Loss')
+    plt.ylabel('Mean Loss')
     plt.legend()
-    plt.title("Loss per Epoch")
+    plt.title("Mean Loss per Epoch")
     plt.show()
 
     next_button = tk.Button(gui, text='Next', command=lambda: next_screen7(epochs_value, fitness_per_epoch))
@@ -332,8 +332,6 @@ def get_data_from_gui():
     # Extract features (X) and labels (y)
     X = data.iloc[:, :-1].values
     y = data.iloc[:, -1].values
-
-    print(data.head())
     return X, y
 
 # Formats the best parameters obtained from PSO to be shown in a proper format

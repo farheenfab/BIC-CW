@@ -437,7 +437,7 @@ def set_up():
 # After you enter the Loss function option, it will take some time based on the dataset. So please wait until it prints the output.
 # Uncomment the below lines to run the PSO on Terminal
 
-# f = "data_banknote_authentication.txt"
+# f = "data_banknote_authentication.txt" # Plese replace with your file destination, if needed.
 # data = pd.read_csv(f, header=None)
 
 # X = data.iloc[:, :-1].values
@@ -449,14 +449,14 @@ def set_up():
 
 # plt.plot(range(epochs), loss_per_epoch, label='Loss')
 # plt.xlabel('Epochs')
-# plt.ylabel('Loss')
+# plt.ylabel('Mean Loss')
 # plt.legend()
-# plt.title("Loss per Epoch")
+# plt.title("Mean Loss per Epoch")
 # plt.show()
 
 # plt.plot(range(epochs), fitness_per_epoch, label='Fitness')
 # plt.xlabel('Epochs')
-# plt.ylabel('Fitness')
+# plt.ylabel('Global Fitness')
 # plt.legend()
-# plt.title("Fitness per Epoch")
+# plt.title("Global Fitness per Epoch")
 # plt.show()
