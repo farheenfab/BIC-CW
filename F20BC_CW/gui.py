@@ -217,6 +217,7 @@ def check_pso_completion():
         gui.after(100, check_pso_completion)
 
 # Displays results after PSO is completed
+# Reference : ChatGPT
 def next_screen4(gbest_fitness, best_acc, best_params, loss_per_epoch, fitness_per_epoch):
     
     for widget in gui.winfo_children():
@@ -335,6 +336,7 @@ def get_data_from_gui():
     return X, y
 
 # Formats the best parameters obtained from PSO to be shown in a proper format
+# Reference : ChatGPT
 def format_best_params(best_params, nodes):
     formatted_params = {}
     pointer = 0
@@ -357,6 +359,7 @@ def format_best_params(best_params, nodes):
     return formatted_params
 
 # Draws the ANN diagram using networkx and matplotlib
+# Reference : ChatGPT
 def draw_ann(layers):
     G = nx.DiGraph()
 

@@ -160,6 +160,7 @@ class Network:
         return out
     
     # Extracts all weights and biases, flattens them, and concatenates into a single vector
+    # Reference : ChatGPT
     def get_parameters(self):
         params = []
         for layer in self.layers:
@@ -168,6 +169,7 @@ class Network:
         return np.concatenate(params)
     
     # Restores the weights and biases from the flat vector
+    # Reference : ChatGPT
     def set_parameters(self, flat_parameters):
         # Pointer keeps track of where we are in the flat_parameters vector
         pointer = 0  
